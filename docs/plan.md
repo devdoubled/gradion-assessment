@@ -198,9 +198,9 @@ Commit: `feat(admin): add admin list, approve, and reject endpoints`
 Goal: End-to-end happy path test passing in CI without docker.
 
 ```
-[ ] Install test deps in apps/backend: mongodb-memory-server, supertest, @types/supertest
-[ ] Configure jest e2e config to use mongodb-memory-server
-[ ] Write test/app.e2e-spec.ts covering full sequence from CLAUDE.md section 12:
+[x] Install test deps in apps/backend: mongodb-memory-server, supertest, @types/supertest
+[x] Configure jest e2e config to use mongodb-memory-server
+[x] Write test/app.e2e-spec.ts covering full sequence from CLAUDE.md section 12:
       1.  POST /auth/signup (user)
       2.  POST /auth/login → JWT
       3.  POST /reports → DRAFT
@@ -213,7 +213,7 @@ Goal: End-to-end happy path test passing in CI without docker.
       10. POST /admin/reports/:id/approve → APPROVED
       11. GET  /reports/:id → status APPROVED, totalAmount unchanged
       12. POST /admin/reports/:id/approve → expect 400 (terminal)
-[ ] Run: pnpm --filter backend test:e2e — must pass
+[x] Run: pnpm --filter backend test:e2e — must pass
 ```
 
 Commit: `test(e2e): happy path DRAFT → SUBMITTED → APPROVED integration test`

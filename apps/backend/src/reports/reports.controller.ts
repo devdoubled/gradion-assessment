@@ -3,13 +3,20 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   Patch,
   Post,
   Query,
   Req,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
 import type { Request } from 'express';
 import { ReportsService } from './reports.service';
 import { CreateReportDto } from './dto/create-report.dto';
@@ -30,7 +37,11 @@ export class ReportsController {
 
   @Get()
   @ApiOperation({ summary: 'List own expense reports' })
-  @ApiQuery({ name: 'status', required: false, enum: ['DRAFT', 'SUBMITTED', 'APPROVED', 'REJECTED'] })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    enum: ['DRAFT', 'SUBMITTED', 'APPROVED', 'REJECTED'],
+  })
   findAll(@Req() req: Request, @Query('status') status?: string) {
     return this.reportsService.findAll(req.user!['id'], status);
   }
@@ -59,8 +70,11 @@ export class ReportsController {
   }
 
   @Post(':id/submit')
+  @HttpCode(HttpStatus.OK)
   @ResponseMeta('Submit successfully', '005')
-  @ApiOperation({ summary: 'Submit a DRAFT report for approval (DRAFT → SUBMITTED)' })
+  @ApiOperation({
+    summary: 'Submit a DRAFT report for approval (DRAFT → SUBMITTED)',
+  })
   submit(@Param('id') id: string, @Req() req: Request) {
     return this.reportsService.submit(id, req.user!['id']);
   }

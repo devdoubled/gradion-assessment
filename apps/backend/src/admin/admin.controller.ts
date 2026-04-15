@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Param, Query } from '@nestjs/common';
+import { Controller, Get, HttpCode, HttpStatus, Post, Param, Query } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -28,6 +28,7 @@ export class AdminController {
   }
 
   @Post('reports/:id/approve')
+  @HttpCode(HttpStatus.OK)
   @ResponseMeta('Approved successfully', '006')
   @ApiOperation({ summary: 'Approve a submitted report (SUBMITTED → APPROVED)' })
   approve(@Param('id') id: string) {
@@ -35,6 +36,7 @@ export class AdminController {
   }
 
   @Post('reports/:id/reject')
+  @HttpCode(HttpStatus.OK)
   @ResponseMeta('Rejected successfully', '007')
   @ApiOperation({ summary: 'Reject a submitted report (SUBMITTED → REJECTED)' })
   reject(@Param('id') id: string) {

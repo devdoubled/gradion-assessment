@@ -32,24 +32,28 @@ export class ExtractionService {
       const base64 = buffer.toString('base64');
       const isPdf = mimetype === 'application/pdf';
 
-      type ImageMediaType = 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif';
+      type ImageMediaType =
+        | 'image/jpeg'
+        | 'image/png'
+        | 'image/webp'
+        | 'image/gif';
       const fileContent = isPdf
-        ? ({
+        ? {
             type: 'document' as const,
             source: {
               type: 'base64' as const,
               media_type: 'application/pdf' as const,
               data: base64,
             },
-          })
-        : ({
+          }
+        : {
             type: 'image' as const,
             source: {
               type: 'base64' as const,
               media_type: mimetype as ImageMediaType,
               data: base64,
             },
-          });
+          };
 
       const response = await this.client.messages.create({
         model: 'claude-sonnet-4-5',
@@ -62,13 +66,13 @@ export class ExtractionService {
               {
                 type: 'text',
                 text: `Extract the following fields from this receipt and return ONLY valid JSON with no markdown, no explanation, no extra text:
-{
-  "merchantName": "string or null",
-  "amount": number or null,
-  "currency": "ISO 4217 code e.g. USD or null",
-  "transactionDate": "ISO 8601 date string or null"
-}
-If a field cannot be determined, use null.`,
+                        {
+                          "merchantName": "string or null",
+                          "amount": number or null,
+                          "currency": "ISO 4217 code e.g. USD or null",
+                          "transactionDate": "ISO 8601 date string or null"
+                        }
+                      If a field cannot be determined, use null.`,
               },
             ],
           },

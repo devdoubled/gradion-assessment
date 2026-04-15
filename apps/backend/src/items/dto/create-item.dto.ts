@@ -16,7 +16,11 @@ export class CreateItemDto {
   @Type(() => Number)
   amount: number;
 
-  @ApiProperty({ example: 'USD', maxLength: 3, description: 'ISO 4217 currency code' })
+  @ApiProperty({
+    example: 'USD',
+    maxLength: 3,
+    description: 'ISO 4217 currency code',
+  })
   @IsString()
   @IsNotEmpty()
   @MaxLength(3)

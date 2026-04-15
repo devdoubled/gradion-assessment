@@ -1,7 +1,7 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as Minio from 'minio';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'crypto';
 import * as path from 'path';
 
 @Injectable()
@@ -15,10 +15,7 @@ export class UploadsService implements OnModuleInit {
     this.bucket = this.configService.get<string>('MINIO_BUCKET', 'receipts');
     this.client = new Minio.Client({
       endPoint: this.configService.get<string>('MINIO_ENDPOINT', 'localhost'),
-      port: parseInt(
-        this.configService.get<string>('MINIO_PORT', '9000'),
-        10,
-      ),
+      port: parseInt(this.configService.get<string>('MINIO_PORT', '9000'), 10),
       useSSL: this.configService.get<string>('MINIO_USE_SSL') === 'true',
       accessKey: this.configService.get<string>('MINIO_ACCESS_KEY', ''),
       secretKey: this.configService.get<string>('MINIO_SECRET_KEY', ''),
@@ -36,7 +33,7 @@ export class UploadsService implements OnModuleInit {
     originalname: string,
   ): Promise<string> {
     const ext = path.extname(originalname);
-    const key = `receipts/${uuidv4()}${ext}`;
+    const key = `receipts/${randomUUID()}${ext}`;
     await this.client.putObject(this.bucket, key, buffer, buffer.length, {
       'Content-Type': mimetype,
     });

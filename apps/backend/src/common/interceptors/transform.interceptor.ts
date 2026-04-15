@@ -24,6 +24,15 @@ const METHOD_META: Record<string, ResponseMeta> = {
 function stripPasswordHash(obj: unknown): unknown {
   if (Array.isArray(obj)) return obj.map(stripPasswordHash);
   if (obj && typeof obj === 'object') {
+    // Mongoose documents: convert to plain object first
+    if (typeof (obj as Record<string, unknown>)['toObject'] === 'function') {
+      return stripPasswordHash(
+        (obj as { toObject: () => unknown }).toObject(),
+      );
+    }
+    // Non-plain objects (ObjectId, Date, Buffer, etc.): leave as-is so
+    // JSON.stringify serialises them via their own toJSON() methods.
+    if ((obj as object).constructor !== Object) return obj;
     const record = obj as Record<string, unknown>;
     const result: Record<string, unknown> = {};
     for (const key of Object.keys(record)) {
@@ -50,17 +59,11 @@ export class TransformInterceptor implements NestInterceptor {
 
     return next.handle().pipe(
       map((data: unknown) => {
-        const doc = data as Record<string, unknown> | null;
-        const cleaned =
-          doc && typeof doc['toObject'] === 'function'
-            ? stripPasswordHash((doc['toObject'] as () => unknown)())
-            : stripPasswordHash(data);
-
         return {
           status: 'success',
           message: meta.message,
           messageCode: meta.messageCode,
-          data: cleaned ?? null,
+          data: stripPasswordHash(data) ?? null,
         };
       }),
     );

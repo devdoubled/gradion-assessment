@@ -1,8 +1,58 @@
-# Frontend Skill — Next.js 14 App Router + TypeScript + Tailwind
+# Frontend Skill — Next.js App Router + TypeScript + Tailwind + shadcn/ui
 
 > Claude Code reads this file before generating any frontend code.
 > Every pattern here is the single correct way to do that thing in this project.
 > Do not deviate. Do not invent alternatives.
+> UI must be **professional, polished, and beautiful** — reference modern SaaS dashboards
+> (Linear, Vercel, Notion, Stripe). Never ship plain or unstyled UI.
+
+---
+
+## 0. UI Design System — Non-Negotiable
+
+This project uses **shadcn/ui** as the component library. Every UI element must use
+shadcn components. Never use raw HTML inputs, buttons, or divs where a shadcn
+component exists.
+
+### Design principles
+- **Clean, spacious layouts** — generous padding, breathable whitespace
+- **Consistent typography** — Inter via `next/font/google`, clear hierarchy
+- **Subtle depth** — soft shadows (`shadow-sm`), not flat
+- **Purposeful color** — neutral base (zinc/slate), one brand accent (indigo)
+- **Microinteractions** — hover states, loading spinners, smooth transitions
+- **Empty states** — never show a blank screen; always show an icon + message
+- **Skeleton loading** — use `Skeleton` from shadcn while data loads
+
+### Color palette (Tailwind v4 CSS variables via shadcn)
+```
+Primary action:   bg-primary (indigo)
+Destructive:      bg-destructive (red)
+Muted text:       text-muted-foreground
+Card background:  bg-card
+Border:           border-border
+Input:            bg-input
+```
+
+### Typography scale
+```
+Page title:        text-2xl font-bold tracking-tight
+Section heading:   text-lg font-semibold
+Card title:        text-base font-semibold
+Body:              text-sm text-muted-foreground
+Label:             text-sm font-medium
+Micro:             text-xs text-muted-foreground
+```
+
+### Layout structure
+All authenticated pages use a **sidebar + main content** shell:
+```
+┌─────────────────────────────────────────────────┐
+│  Sidebar (w-64, fixed)  │  Main content area     │
+│  - Logo + app name      │  - Page header          │
+│  - Nav links            │  - Breadcrumb (optional)│
+│  - User info at bottom  │  - Content              │
+└─────────────────────────────────────────────────┘
+```
 
 ---
 
@@ -16,7 +66,7 @@ app/
 │   └── signup/
 │       └── page.tsx     ← /signup
 ├── (user)/
-│   ├── layout.tsx       ← wraps all /reports/* routes, auth guard lives here
+│   ├── layout.tsx       ← auth guard + sidebar shell
 │   └── reports/
 │       ├── page.tsx     ← /reports
 │       ├── new/
@@ -27,7 +77,7 @@ app/
 │               ├── new/page.tsx
 │               └── [itemId]/edit/page.tsx
 └── (admin)/
-    ├── layout.tsx       ← admin auth guard lives here
+    ├── layout.tsx       ← admin auth guard + admin sidebar shell
     └── admin/
         └── reports/
             └── page.tsx ← /admin/reports
@@ -36,70 +86,72 @@ app/
 Rules:
 - Route group folders `(name)` do not appear in the URL
 - `layout.tsx` wraps all children and persists across navigations
-- `page.tsx` is the unique UI for that route
-- Auth guards live in `layout.tsx`, never in `page.tsx`
+- Auth guards AND the sidebar shell live in `layout.tsx`, never in `page.tsx`
+- `params` is a **Promise** in Next.js 16 — always `await params` in async pages
 
 ---
 
-## 2. Component Classification
+## 2. shadcn/ui Setup
 
-Decide the rendering strategy before writing any component.
+shadcn/ui is initialized with:
+```bash
+pnpm dlx shadcn@latest init
+```
+
+Components are added with:
+```bash
+pnpm dlx shadcn@latest add <component-name>
+```
+
+Import from `@/components/ui/<component>`:
+```typescript
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+```
+
+Icons come from **lucide-react** (ships with shadcn):
+```typescript
+import {
+  FileText, Plus, Send, CheckCircle2, XCircle, Clock,
+  Receipt, Pencil, Trash2, ChevronRight, LogOut,
+  LayoutDashboard, Users, BarChart3, Loader2,
+  AlertCircle, Upload, Sparkles, ArrowLeft,
+} from 'lucide-react';
+```
+
+---
+
+## 3. Component Classification
 
 **Server Component** (default — no `'use client'`):
-- Read-only data display
-- No useState, useEffect, or browser APIs
-- No event handlers
+- Read-only data display, no hooks, no browser APIs
 - Fetches data directly (can be async)
 
-```typescript
-// app/(user)/reports/page.tsx — Server Component
-import { cookies } from 'next/headers';
-import { ReportCard } from '@/components/ReportCard';
-
-async function getReports(token: string) {
-  const res = await fetch(`${process.env.API_URL}/reports`, {
-    headers: { Authorization: `Bearer ${token}` },
-    cache: 'no-store',
-  });
-  if (!res.ok) throw new Error('Failed to fetch reports');
-  return res.json();
-}
-
-export default async function ReportsPage() {
-  const token = cookies().get('token')?.value ?? '';
-  const reports = await getReports(token);
-
-  return (
-    <div className="space-y-4">
-      {reports.map((report) => (
-        <ReportCard key={report._id} report={report} />
-      ))}
-    </div>
-  );
-}
-```
-
 **Client Component** (`'use client'` at top):
-- Needs useState, useEffect, useReducer
-- Has event handlers (onClick, onChange, onSubmit)
-- Uses browser APIs (localStorage, window)
-- Uses hooks from external libraries
+- Needs useState, useEffect, useReducer, event handlers, browser APIs
 
-```typescript
-'use client';
-// components/ReceiptUploader.tsx — Client Component
-import { useState } from 'react';
-```
-
-Rule: push `'use client'` as deep as possible. A page can be a Server Component
-that imports a single Client Component form. Do not make entire pages client-side
-unless the whole page is interactive.
+Rule: push `'use client'` as deep as possible. Pages should be Server Components
+that import isolated Client Component islands for interactivity.
 
 ---
 
-## 3. API Client (`lib/api.ts`)
+## 4. API Client (`lib/api.ts`)
 
-Single axios instance used everywhere. Never call `fetch` directly in components.
+Single axios instance. Never call `fetch` directly in components.
 
 ```typescript
 // lib/api.ts
@@ -129,9 +181,15 @@ api.interceptors.response.use(
 );
 ```
 
+The response envelope from the backend is:
+```typescript
+{ status: number, message: string, messageCode: string, data: T }
+```
+Always unwrap via `response.data.data` to get the actual payload.
+
 ---
 
-## 4. Auth Helpers (`lib/auth.ts`)
+## 5. Auth Helpers (`lib/auth.ts`)
 
 ```typescript
 // lib/auth.ts
@@ -150,313 +208,129 @@ export function getToken(): string | null {
   if (typeof window === 'undefined') return null;
   return localStorage.getItem(TOKEN_KEY);
 }
-
 export function setToken(token: string): void {
   localStorage.setItem(TOKEN_KEY, token);
 }
-
 export function clearToken(): void {
   localStorage.removeItem(TOKEN_KEY);
 }
-
 export function getRole(): 'user' | 'admin' | null {
   const token = getToken();
   if (!token) return null;
-  try {
-    const decoded = jwtDecode<JwtPayload>(token);
-    return decoded.role;
-  } catch {
-    return null;
-  }
+  try { return jwtDecode<JwtPayload>(token).role; } catch { return null; }
 }
-
+export function getUserEmail(): string | null {
+  const token = getToken();
+  if (!token) return null;
+  try { return jwtDecode<JwtPayload>(token).email; } catch { return null; }
+}
 export function isAuthenticated(): boolean {
   const token = getToken();
   if (!token) return false;
   try {
     const decoded = jwtDecode<JwtPayload>(token);
     return decoded.exp * 1000 > Date.now();
-  } catch {
-    return false;
-  }
+  } catch { return false; }
 }
 ```
 
 ---
 
-## 5. Layout Auth Guard Pattern
+## 6. Layout Auth Guard + Sidebar Shell
 
-Both `(user)/layout.tsx` and `(admin)/layout.tsx` must be Client Components
-because they use `localStorage`.
+Both layouts must be Client Components. They do two jobs:
+1. Auth guard (redirect if not authenticated / wrong role)
+2. Render the sidebar shell that wraps all child pages
 
 ```typescript
 // app/(user)/layout.tsx
 'use client';
 
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { isAuthenticated, getRole } from '@/lib/auth';
+import { useRouter, usePathname } from 'next/navigation';
+import Link from 'next/link';
+import { isAuthenticated, getRole, getUserEmail, clearToken } from '@/lib/auth';
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Separator } from '@/components/ui/separator';
+import { FileText, Plus, LogOut, LayoutDashboard } from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+const NAV = [
+  { href: '/reports',     label: 'My Reports', icon: FileText },
+  { href: '/reports/new', label: 'New Report',  icon: Plus     },
+];
 
 export default function UserLayout({ children }: { children: React.ReactNode }) {
-  const router = useRouter();
+  const router   = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
-    if (!isAuthenticated()) {
-      router.replace('/login');
-      return;
-    }
-    if (getRole() === 'admin') {
-      router.replace('/admin/reports');
-    }
+    if (!isAuthenticated()) { router.replace('/login'); return; }
+    if (getRole() === 'admin') router.replace('/admin/reports');
   }, [router]);
 
   if (!isAuthenticated()) return null;
 
-  return <>{children}</>;
-}
-```
-
-```typescript
-// app/(admin)/layout.tsx
-'use client';
-
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { isAuthenticated, getRole } from '@/lib/auth';
-
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!isAuthenticated() || getRole() !== 'admin') {
-      router.replace('/login');
-    }
-  }, [router]);
-
-  if (!isAuthenticated() || getRole() !== 'admin') return null;
-
-  return <>{children}</>;
-}
-```
-
----
-
-## 6. Form Pattern
-
-All forms are Client Components. Use controlled inputs with `useState`.
-Never use uncontrolled inputs or `ref` to read form values.
-
-```typescript
-'use client';
-
-import { useState, FormEvent } from 'react';
-import { useRouter } from 'next/navigation';
-import { api } from '@/lib/api';
-
-interface FormState {
-  title: string;
-  description: string;
-}
-
-export default function NewReportPage() {
-  const router = useRouter();
-  const [form, setForm] = useState<FormState>({ title: '', description: '' });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-    try {
-      const { data } = await api.post('/reports', form);
-      router.push(`/reports/${data._id}`);
-    } catch (err: unknown) {
-      const msg = err?.response?.data?.message ?? 'Something went wrong';
-      setError(Array.isArray(msg) ? msg.join(', ') : msg);
-    } finally {
-      setLoading(false);
-    }
-  }
+  const email = getUserEmail() ?? '';
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 max-w-lg">
-      {error && (
-        <div className="p-3 bg-red-50 text-red-700 rounded-lg text-sm">{error}</div>
-      )}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Title
-        </label>
-        <input
-          type="text"
-          value={form.title}
-          onChange={(e) => setForm({ ...form, title: e.target.value })}
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm
-                     focus:outline-none focus:ring-2 focus:ring-blue-500"
-          required
-        />
-      </div>
-      <button
-        type="submit"
-        disabled={loading}
-        className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm
-                   hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        {loading ? 'Creating...' : 'Create Report'}
-      </button>
-    </form>
-  );
-}
-```
+    <div className="flex h-screen bg-zinc-50">
+      {/* Sidebar */}
+      <aside className="flex flex-col w-64 border-r border-border bg-white shrink-0">
+        {/* Logo */}
+        <div className="flex items-center gap-2 px-6 py-5">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+            <LayoutDashboard className="h-4 w-4" />
+          </div>
+          <span className="font-semibold tracking-tight">ExpenseFlow</span>
+        </div>
+        <Separator />
+        {/* Nav */}
+        <nav className="flex flex-col gap-1 p-3 flex-1">
+          {NAV.map(({ href, label, icon: Icon }) => (
+            <Link
+              key={href}
+              href={href}
+              className={cn(
+                'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                pathname === href || (href !== '/reports/new' && pathname.startsWith(href))
+                  ? 'bg-primary/10 text-primary'
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+              )}
+            >
+              <Icon className="h-4 w-4" />
+              {label}
+            </Link>
+          ))}
+        </nav>
+        <Separator />
+        {/* User */}
+        <div className="flex items-center gap-3 px-4 py-4">
+          <Avatar className="h-8 w-8">
+            <AvatarFallback className="text-xs bg-primary/10 text-primary">
+              {email.charAt(0).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex flex-col min-w-0">
+            <span className="text-xs font-medium truncate">{email}</span>
+            <span className="text-xs text-muted-foreground">User</span>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="ml-auto h-7 w-7 text-muted-foreground hover:text-destructive"
+            onClick={() => { clearToken(); router.replace('/login'); }}
+          >
+            <LogOut className="h-4 w-4" />
+          </Button>
+        </div>
+      </aside>
 
-Rules:
-- Always `e.preventDefault()` in form submit handlers
-- Always show a loading state while the API call is in flight
-- Always show error state if the API call fails
-- Extract error message from `err.response.data.message` (can be string or array)
-
----
-
-## 7. StatusBadge Component
-
-```typescript
-// components/StatusBadge.tsx
-type ReportStatus = 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'REJECTED';
-
-const STATUS_STYLES: Record<ReportStatus, string> = {
-  DRAFT:     'bg-gray-100 text-gray-700',
-  SUBMITTED: 'bg-blue-100 text-blue-700',
-  APPROVED:  'bg-green-100 text-green-700',
-  REJECTED:  'bg-red-100 text-red-700',
-};
-
-const STATUS_LABELS: Record<ReportStatus, string> = {
-  DRAFT:     'Draft',
-  SUBMITTED: 'Submitted',
-  APPROVED:  'Approved',
-  REJECTED:  'Rejected',
-};
-
-interface StatusBadgeProps {
-  status: ReportStatus;
-}
-
-export function StatusBadge({ status }: StatusBadgeProps) {
-  return (
-    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full
-                      text-xs font-medium ${STATUS_STYLES[status]}`}>
-      {STATUS_LABELS[status]}
-    </span>
-  );
-}
-```
-
----
-
-## 8. ReceiptUploader Component
-
-Manages the five-state extraction lifecycle with explicit discriminated union.
-Never infer state from boolean flags.
-
-```typescript
-'use client';
-
-import { useState, useRef, ChangeEvent } from 'react';
-import { api } from '@/lib/api';
-
-export interface ExtractedFields {
-  merchantName:    string | null;
-  amount:          number | null;
-  currency:        string | null;
-  transactionDate: string | null;
-}
-
-type ExtractionState =
-  | { status: 'idle' }
-  | { status: 'uploading' }
-  | { status: 'extracting' }
-  | { status: 'complete'; extracted: ExtractedFields }
-  | { status: 'error'; message: string };
-
-interface ReceiptUploaderProps {
-  itemId: string;
-  onExtracted: (fields: ExtractedFields) => void;
-}
-
-export function ReceiptUploader({ itemId, onExtracted }: ReceiptUploaderProps) {
-  const [state, setState] = useState<ExtractionState>({ status: 'idle' });
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  async function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setState({ status: 'uploading' });
-
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-
-      setState({ status: 'extracting' });
-
-      const { data } = await api.post(`/items/${itemId}/receipt`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
-
-      const extracted: ExtractedFields = data.aiExtracted ?? {
-        merchantName: null, amount: null, currency: null, transactionDate: null,
-      };
-
-      setState({ status: 'complete', extracted });
-      onExtracted(extracted);
-    } catch (err: unknown) {
-      const message = err?.response?.data?.message ?? 'Upload failed';
-      setState({ status: 'error', message });
-    }
-  }
-
-  return (
-    <div className="space-y-2">
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/jpeg,image/png,image/webp,application/pdf"
-        onChange={handleFileChange}
-        className="hidden"
-      />
-
-      <button
-        type="button"
-        onClick={() => inputRef.current?.click()}
-        disabled={state.status === 'uploading' || state.status === 'extracting'}
-        className="px-3 py-2 border border-gray-300 rounded-lg text-sm
-                   hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        {state.status === 'idle' && 'Upload Receipt'}
-        {state.status === 'uploading' && 'Uploading...'}
-        {state.status === 'extracting' && 'Extracting data...'}
-        {state.status === 'complete' && 'Receipt uploaded ✓'}
-        {state.status === 'error' && 'Retry Upload'}
-      </button>
-
-      {state.status === 'extracting' && (
-        <p className="text-xs text-blue-600 flex items-center gap-1">
-          <span className="inline-block w-3 h-3 border-2 border-blue-600
-                           border-t-transparent rounded-full animate-spin" />
-          Extracting receipt data with AI...
-        </p>
-      )}
-
-      {state.status === 'complete' && (
-        <p className="text-xs text-green-600">
-          Fields pre-filled from receipt. Review and edit before saving.
-        </p>
-      )}
-
-      {state.status === 'error' && (
-        <p className="text-xs text-red-600">{state.message}</p>
-      )}
+      {/* Main */}
+      <main className="flex flex-col flex-1 overflow-auto">
+        {children}
+      </main>
     </div>
   );
 }
@@ -464,239 +338,276 @@ export function ReceiptUploader({ itemId, onExtracted }: ReceiptUploaderProps) {
 
 ---
 
-## 9. Item Form with Extraction Pre-fill
+## 7. Form Pattern — shadcn/ui
+
+All forms use shadcn `Input`, `Label`, `Button`, `Textarea`. Never raw HTML inputs.
 
 ```typescript
 'use client';
 
-import { useState, useEffect, FormEvent } from 'react';
+import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
-import { ReceiptUploader, ExtractedFields } from '@/components/ReceiptUploader';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Loader2, AlertCircle } from 'lucide-react';
 
-interface ItemFormProps {
-  reportId: string;
-  itemId?: string;          // present when editing
-  initialValues?: Partial<ItemFormValues>;
-}
-
-interface ItemFormValues {
-  amount:          string;
-  currency:        string;
-  category:        string;
-  merchantName:    string;
-  transactionDate: string;
-}
-
-const EMPTY_FORM: ItemFormValues = {
-  amount: '', currency: 'USD', category: '',
-  merchantName: '', transactionDate: '',
-};
-
-export function ItemForm({ reportId, itemId, initialValues }: ItemFormProps) {
+export default function NewReportPage() {
   const router = useRouter();
-  const [form, setForm] = useState<ItemFormValues>({
-    ...EMPTY_FORM,
-    ...initialValues,
-  });
+  const [form, setForm] = useState({ title: '', description: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  // Pre-fill from AI extraction
-  function handleExtracted(fields: ExtractedFields) {
-    setForm((prev) => ({
-      ...prev,
-      merchantName:    fields.merchantName    ?? prev.merchantName,
-      amount:          fields.amount != null  ? String(fields.amount) : prev.amount,
-      currency:        fields.currency        ?? prev.currency,
-      transactionDate: fields.transactionDate
-        ? fields.transactionDate.slice(0, 10)  // ISO date → YYYY-MM-DD for input[type=date]
-        : prev.transactionDate,
-    }));
-  }
-
-  function set(field: keyof ItemFormValues) {
-    return (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
-      setForm((prev) => ({ ...prev, [field]: e.target.value }));
-  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError(null);
     try {
-      const payload = { ...form, amount: parseFloat(form.amount) };
-      if (itemId) {
-        await api.patch(`/reports/${reportId}/items/${itemId}`, payload);
-      } else {
-        await api.post(`/reports/${reportId}/items`, payload);
-      }
-      router.push(`/reports/${reportId}`);
+      const { data: res } = await api.post('/reports', form);
+      router.push(`/reports/${res.data._id}`);
     } catch (err: unknown) {
-      const msg = err?.response?.data?.message ?? 'Failed to save item';
-      setError(Array.isArray(msg) ? msg.join(', ') : msg);
+      const axiosErr = err as { response?: { data?: { message?: string | string[] } } };
+      const raw = axiosErr?.response?.data?.message ?? 'Something went wrong';
+      setError(Array.isArray(raw) ? raw.join(', ') : raw);
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 max-w-lg">
-      {/* Receipt uploader — only shown for new items (no itemId yet) */}
-      {!itemId && (
-        <div className="p-4 bg-gray-50 rounded-lg border border-dashed border-gray-300">
-          <p className="text-sm text-gray-600 mb-2">
-            Upload a receipt to auto-fill the fields below.
-          </p>
-          {/* Note: itemId not available until item is created.
-              Alternative: create item first (draft), then upload receipt.
-              For simplicity: upload is available on edit page after creation. */}
-        </div>
-      )}
-
-      {/* Receipt uploader on edit page — item already exists */}
-      {itemId && (
-        <div className="p-4 bg-gray-50 rounded-lg">
-          <p className="text-sm font-medium text-gray-700 mb-2">Receipt</p>
-          <ReceiptUploader itemId={itemId} onExtracted={handleExtracted} />
-        </div>
-      )}
-
+    <form onSubmit={handleSubmit} className="space-y-4">
       {error && (
-        <div className="p-3 bg-red-50 text-red-700 rounded-lg text-sm">{error}</div>
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       )}
-
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Amount
-          </label>
-          <input
-            type="number"
-            step="0.01"
-            min="0"
-            value={form.amount}
-            onChange={set('amount')}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm
-                       focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Currency
-          </label>
-          <input
-            type="text"
-            value={form.currency}
-            onChange={set('currency')}
-            placeholder="USD"
-            maxLength={3}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm
-                       focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase"
-            required
-          />
-        </div>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Merchant
-        </label>
-        <input
-          type="text"
-          value={form.merchantName}
-          onChange={set('merchantName')}
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm
-                     focus:outline-none focus:ring-2 focus:ring-blue-500"
+      <div className="space-y-1.5">
+        <Label htmlFor="title">Title</Label>
+        <Input
+          id="title"
+          value={form.title}
+          onChange={(e) => setForm({ ...form, title: e.target.value })}
+          placeholder="Q1 Travel Expenses"
           required
         />
       </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Category
-        </label>
-        <input
-          type="text"
-          value={form.category}
-          onChange={set('category')}
-          placeholder="Transport, Meals, Accommodation..."
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm
-                     focus:outline-none focus:ring-2 focus:ring-blue-500"
-          required
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Date
-        </label>
-        <input
-          type="date"
-          value={form.transactionDate}
-          onChange={set('transactionDate')}
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm
-                     focus:outline-none focus:ring-2 focus:ring-blue-500"
-          required
-        />
-      </div>
-
-      <div className="flex gap-3">
-        <button
-          type="submit"
-          disabled={loading}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm
-                     hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {loading ? 'Saving...' : itemId ? 'Save Changes' : 'Add Item'}
-        </button>
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg
-                     text-sm hover:bg-gray-50"
-        >
-          Cancel
-        </button>
-      </div>
+      <Button type="submit" disabled={loading}>
+        {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        {loading ? 'Creating...' : 'Create Report'}
+      </Button>
     </form>
+  );
+}
+```
+
+Rules:
+- Always `e.preventDefault()` in form submit handlers
+- Always show loading with `<Loader2 className="animate-spin" />` inside Button
+- Always show errors with `<Alert variant="destructive">`
+- Always clear `error` at the start of each submission
+- Unwrap backend response as `res.data` (envelope: `{ data: T }`)
+
+---
+
+## 8. StatusBadge Component
+
+Use shadcn `Badge` with semantic variants and lucide icons:
+
+```typescript
+// components/StatusBadge.tsx
+import { Badge } from '@/components/ui/badge';
+import { Clock, Send, CheckCircle2, XCircle } from 'lucide-react';
+import { ReportStatus } from '@/lib/types';
+
+const CONFIG: Record<ReportStatus, {
+  label: string;
+  variant: 'secondary' | 'default' | 'outline' | 'destructive';
+  icon: React.ElementType;
+  className: string;
+}> = {
+  DRAFT:     { label: 'Draft',     variant: 'secondary',   icon: Clock,         className: 'text-zinc-600' },
+  SUBMITTED: { label: 'Submitted', variant: 'default',     icon: Send,          className: 'bg-blue-100 text-blue-700 border-blue-200 hover:bg-blue-100' },
+  APPROVED:  { label: 'Approved',  variant: 'outline',     icon: CheckCircle2,  className: 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-50' },
+  REJECTED:  { label: 'Rejected',  variant: 'destructive', icon: XCircle,       className: '' },
+};
+
+export function StatusBadge({ status }: { status: ReportStatus }) {
+  const { label, icon: Icon, className } = CONFIG[status];
+  return (
+    <Badge variant="outline" className={`gap-1.5 font-medium ${className}`}>
+      <Icon className="h-3 w-3" />
+      {label}
+    </Badge>
   );
 }
 ```
 
 ---
 
-## 10. Tailwind Class Conventions
+## 9. ReceiptUploader Component
 
-Consistent classes used throughout the project. Always use these — do not invent
-new patterns for the same element type.
+Five-state discriminated union. Use shadcn `Button`, `Alert`, lucide icons.
 
+```typescript
+'use client';
+// See section 8 of old SKILL.md for state machine logic.
+// UI: use shadcn Button for trigger, Alert for errors, Badge for success state.
+// Show animated Loader2 icon during uploading/extracting states.
+// Show Sparkles icon when extraction is complete.
+// Show Upload icon in idle state.
 ```
-Page wrapper:         className="p-6 max-w-4xl mx-auto"
-Section heading:      className="text-xl font-semibold text-gray-900 mb-4"
-Card:                 className="bg-white border border-gray-200 rounded-xl p-4"
-Table wrapper:        className="overflow-x-auto"
-Table:                className="w-full text-sm text-left"
-Table header row:     className="border-b border-gray-200"
-Table header cell:    className="px-4 py-3 font-medium text-gray-500 uppercase text-xs"
-Table body row:       className="border-b border-gray-100 hover:bg-gray-50"
-Table body cell:      className="px-4 py-3 text-gray-700"
-Primary button:       className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50"
-Secondary button:     className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm hover:bg-gray-50"
-Danger button:        className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700"
-Text input:           className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-Error message:        className="p-3 bg-red-50 text-red-700 rounded-lg text-sm"
-Success message:      className="p-3 bg-green-50 text-green-700 rounded-lg text-sm"
-Empty state:          className="text-center py-12 text-gray-400 text-sm"
-Loading spinner:      className="inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"
+
+Full implementation:
+- `idle`       → Button with `<Upload>` icon: "Upload Receipt"
+- `uploading`  → Button disabled with `<Loader2 animate-spin>`: "Uploading..."
+- `extracting` → Button disabled with `<Loader2 animate-spin>` + Alert info: "Extracting with AI..."
+- `complete`   → Button with `<Sparkles>` in green variant: "Receipt Uploaded" + green Alert
+- `error`      → Button "Retry Upload" + `<Alert variant="destructive">`
+
+---
+
+## 10. Page Shell Pattern
+
+Every authenticated page follows this exact shell:
+
+```typescript
+// Page header
+<div className="border-b border-border bg-white px-8 py-6">
+  <div className="flex items-center justify-between">
+    <div>
+      <h1 className="text-2xl font-bold tracking-tight">Page Title</h1>
+      <p className="text-sm text-muted-foreground mt-0.5">Subtitle or description</p>
+    </div>
+    <div className="flex items-center gap-3">
+      {/* Action buttons */}
+    </div>
+  </div>
+</div>
+
+// Page body
+<div className="p-8 space-y-6">
+  {/* Content */}
+</div>
+```
+
+Form pages (new report, new item, edit item) use a **centered card** shell:
+```typescript
+<div className="border-b border-border bg-white px-8 py-6">
+  {/* Back button + title */}
+</div>
+<div className="p-8">
+  <div className="max-w-2xl mx-auto">
+    <Card>
+      <CardHeader>
+        <CardTitle>Form Title</CardTitle>
+        <CardDescription>Helper text</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {/* Form */}
+      </CardContent>
+    </Card>
+  </div>
+</div>
 ```
 
 ---
 
-## 11. Error Handling Pattern
+## 11. Loading Skeleton Pattern
 
-Always handle API errors the same way across all components:
+Every data-fetching page must show skeletons while loading:
+
+```typescript
+// In a Client Component while data is null/loading:
+if (loading) {
+  return (
+    <div className="p-8 space-y-4">
+      {[...Array(3)].map((_, i) => (
+        <Card key={i}>
+          <CardContent className="p-6">
+            <div className="space-y-3">
+              <Skeleton className="h-5 w-48" />
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-3/4" />
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
+```
+
+---
+
+## 12. Empty State Pattern
+
+Every list page must show a friendly empty state when there is no data:
+
+```typescript
+// When list is empty:
+<div className="flex flex-col items-center justify-center py-20 text-center">
+  <div className="rounded-full bg-muted p-4 mb-4">
+    <FileText className="h-8 w-8 text-muted-foreground" />
+  </div>
+  <h3 className="text-base font-semibold mb-1">No reports yet</h3>
+  <p className="text-sm text-muted-foreground mb-6 max-w-xs">
+    Create your first expense report to get started.
+  </p>
+  <Button asChild>
+    <Link href="/reports/new">
+      <Plus className="mr-2 h-4 w-4" />
+      New Report
+    </Link>
+  </Button>
+</div>
+```
+
+---
+
+## 13. Table Pattern — shadcn/ui
+
+Always use shadcn `Table` components. Add hover state and clickable rows.
+
+```typescript
+import {
+  Table, TableBody, TableCell, TableHead,
+  TableHeader, TableRow,
+} from '@/components/ui/table';
+
+<div className="rounded-lg border border-border overflow-hidden">
+  <Table>
+    <TableHeader>
+      <TableRow className="bg-muted/50 hover:bg-muted/50">
+        <TableHead className="font-semibold text-foreground">Merchant</TableHead>
+        <TableHead className="font-semibold text-foreground">Amount</TableHead>
+        <TableHead className="font-semibold text-foreground">Date</TableHead>
+        <TableHead className="w-24" />
+      </TableRow>
+    </TableHeader>
+    <TableBody>
+      {items.map((item) => (
+        <TableRow key={item._id} className="cursor-pointer hover:bg-muted/30">
+          <TableCell className="font-medium">{item.merchantName}</TableCell>
+          <TableCell>{item.currency} {item.amount.toFixed(2)}</TableCell>
+          <TableCell className="text-muted-foreground">
+            {new Date(item.transactionDate).toLocaleDateString()}
+          </TableCell>
+          <TableCell>
+            {/* Actions */}
+          </TableCell>
+        </TableRow>
+      ))}
+    </TableBody>
+  </Table>
+</div>
+```
+
+---
+
+## 14. Error Handling Pattern
 
 ```typescript
 } catch (err: unknown) {
@@ -706,139 +617,96 @@ Always handle API errors the same way across all components:
 }
 ```
 
-Never show raw `err.message` to users — it leaks implementation details.
-Always show `error` state in the UI when it is non-null.
-Always clear `error` at the start of a new submission attempt.
+Always display with `<Alert variant="destructive">`, never raw text.
+Always `setError(null)` at the start of each new submission.
 
 ---
 
-## 12. Navigation Patterns
+## 15. TypeScript Types (`lib/types.ts`)
 
 ```typescript
-// Programmatic navigation after async action
-const router = useRouter();
-router.push(`/reports/${id}`);     // navigate forward
-router.replace('/login');          // redirect (no back history entry)
-router.back();                     // cancel / go back
-
-// Link component for static navigation
-import Link from 'next/link';
-<Link href={`/reports/${id}`} className="text-blue-600 hover:underline text-sm">
-  View Report
-</Link>
-```
-
-Use `router.replace` for auth redirects (login, unauthorized).
-Use `router.push` after successful form submissions.
-Use `<Link>` for all static navigation in lists and cards.
-
----
-
-## 13. Data Fetching Patterns
-
-**From a Server Component page** (preferred for read-only data):
-
-```typescript
-// Direct fetch with Authorization header from cookie
-async function getData(path: string, token: string) {
-  const res = await fetch(`${process.env.API_URL}${path}`, {
-    headers: { Authorization: `Bearer ${token}` },
-    cache: 'no-store',
-  });
-  if (!res.ok) throw new Error(`API error: ${res.status}`);
-  return res.json();
-}
-```
-
-**From a Client Component** (for interactive pages with mutations):
-
-```typescript
-const [data, setData] = useState(null);
-const [loading, setLoading] = useState(true);
-
-useEffect(() => {
-  api.get('/reports')
-    .then(({ data }) => setData(data))
-    .catch(() => setError('Failed to load'))
-    .finally(() => setLoading(false));
-}, []);
-```
-
-**After a mutation, refresh data by:**
-- Calling `router.refresh()` to revalidate Server Component data
-- Or re-fetching the specific resource with `api.get(...)` and calling `setState`
-- Never mutate local state optimistically without a server confirmation
-
----
-
-## 14. TypeScript Types
-
-Define all API response types in `lib/types.ts`:
-
-```typescript
-// lib/types.ts
-
 export type ReportStatus = 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'REJECTED';
 
 export interface User {
-  _id: string;
-  email: string;
-  role: 'user' | 'admin';
-  createdAt: string;
-  updatedAt: string;
+  _id: string; email: string; role: 'user' | 'admin';
+  createdAt: string; updatedAt: string;
 }
 
 export interface ExpenseReport {
-  _id: string;
-  userId: string;
-  title: string;
-  description: string;
-  status: ReportStatus;
-  totalAmount: number;
-  createdAt: string;
-  updatedAt: string;
+  _id: string; userId: string | { _id: string; email: string };
+  title: string; description: string;
+  status: ReportStatus; totalAmount: number;
+  createdAt: string; updatedAt: string;
 }
 
 export interface ExpenseItem {
-  _id: string;
-  reportId: string;
-  amount: number;
-  currency: string;
-  category: string;
-  merchantName: string;
-  transactionDate: string;
+  _id: string; reportId: string;
+  amount: number; currency: string; category: string;
+  merchantName: string; transactionDate: string;
   receiptUrl: string | null;
   aiExtracted: {
-    merchantName: string | null;
-    amount: number | null;
-    currency: string | null;
-    transactionDate: string | null;
+    merchantName: string | null; amount: number | null;
+    currency: string | null; transactionDate: string | null;
   } | null;
-  createdAt: string;
-  updatedAt: string;
+  createdAt: string; updatedAt: string;
 }
 
-export interface AuthResponse {
-  accessToken: string;
-}
+export interface AuthResponse { accessToken: string; }
 ```
-
-Always import types from `@/lib/types` — never re-declare inline.
 
 ---
 
-## 15. Common Mistakes to Avoid
+## 16. Navigation Patterns
+
+```typescript
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+
+// Programmatic (after async action)
+router.push(`/reports/${id}`);   // forward
+router.replace('/login');        // redirect (no history entry)
+router.back();                   // cancel
+
+// Static links — use Button asChild for styled links:
+<Button variant="ghost" size="sm" asChild>
+  <Link href={`/reports/${id}`}>View</Link>
+</Button>
+
+// Back button at top of form pages:
+<Button variant="ghost" size="sm" onClick={() => router.back()}>
+  <ArrowLeft className="mr-2 h-4 w-4" />
+  Back
+</Button>
+```
+
+---
+
+## 17. Key shadcn Components to Use Per Page
+
+| Page | Key shadcn components |
+|---|---|
+| Login / Signup | Card, Input, Label, Button, Alert, Separator |
+| Report list | Card, Badge, Button, Skeleton, Table, Tabs |
+| New report | Card, Input, Textarea, Label, Button, Alert |
+| Report detail | Card, Badge, Button, Table, Separator, Dialog |
+| New/edit item | Card, Input, Label, Button, Alert, Select |
+| Admin reports | Card, Badge, Button, Table, Tabs, Dialog |
+
+---
+
+## 18. Common Mistakes to Avoid
 
 | Mistake | Correct approach |
 |---|---|
-| `'use client'` on every component | Only add when component uses hooks or events |
-| Reading form values with `ref` | Use controlled inputs with `useState` |
-| Calling `fetch` directly in components | Always use `api` from `lib/api.ts` |
-| Showing `err.message` to users | Extract from `err.response.data.message` |
+| Raw `<input>` / `<button>` HTML | Use shadcn `Input` / `Button` always |
+| Plain error text | Use `<Alert variant="destructive">` |
+| Blank loading state | Use shadcn `Skeleton` |
+| No empty state | Always show icon + message + CTA |
+| `'use client'` on every component | Only add when component needs hooks/events |
+| `fetch` directly in components | Always use `api` from `lib/api.ts` |
+| `response.data` directly | Unwrap envelope: `response.data.data` |
+| `router.push('/login')` for redirects | Use `router.replace('/login')` |
+| `any` type on responses | Import from `@/lib/types` |
+| `params` accessed synchronously | Always `await params` — it's a Promise in Next.js 16 |
+| Missing `disabled` on submit buttons | Always disable while `loading === true` |
 | Optimistic UI updates | Always confirm from server before updating state |
-| `router.push('/login')` for auth redirect | Use `router.replace('/login')` |
-| Inlining Tailwind class strings | Use the class conventions in section 10 |
-| `any` type on API responses | Import from `lib/types.ts` |
-| Re-declaring types already in lib/types.ts | Always import from `@/lib/types` |
-| Missing `disabled` state on submit buttons | Always disable while `loading === true` |
-| Not clearing error before new submission | Always `setError(null)` at start of submit handler |

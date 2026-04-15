@@ -1,3 +1,6 @@
+If the task is backend: read .claude/skills/backend/SKILL.md first.
+If the task is frontend: read .claude/skills/frontend/SKILL.md first.
+
 Read CLAUDE.md section 14 (Implementation Progress) and docs/plan.md.
 
 Find the next unchecked [ ] task in the current phase of plan.md.
