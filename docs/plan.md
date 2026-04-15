@@ -141,29 +141,29 @@ Commit: `test(items): unit tests for DRAFT lock and totalAmount recomputation`
 Goal: Receipt file upload to MinIO, Claude vision extraction, fields returned to frontend.
 
 ```
-[ ] Install backend deps: @nestjs/platform-express (already included), multer,
+[x] Install backend deps: @nestjs/platform-express (already included), multer,
       @types/multer, minio, @anthropic-ai/sdk
-[ ] Implement UploadsService
+[x] Implement UploadsService
       → onModuleInit: create MinIO client from env vars, ensure bucket exists
       → upload(buffer, mimetype, originalname): generates UUID key,
            streams to MinIO, returns { url: key }
-[ ] Implement ExtractionService
+[x] Implement ExtractionService
       → extract(buffer, mimetype): calls Anthropic claude-sonnet-4-5 vision API
            prompt: extract merchantName, amount, currency, transactionDate as JSON
            wraps entire call in try/catch
            on success: parse JSON, return { merchantName, amount, currency, transactionDate }
            on failure: log error, return { merchantName: null, amount: null, currency: null, transactionDate: null }
-[ ] Implement UploadsController
+[x] Implement UploadsController
       → POST /items/:itemId/receipt
       → Multer intercepts file (fileFilter: image/*, application/pdf; limit: 10MB)
       → UploadsService.upload() → get receiptUrl
       → ExtractionService.extract() → get aiExtracted fields
       → ItemsService.attachReceipt(itemId, receiptUrl, aiExtracted) → update item
       → Return updated item
-[ ] Add attachReceipt method to ItemsService
+[x] Add attachReceipt method to ItemsService
       → does NOT go through assertReportDraft — receipt can be attached at any status
       → updates receiptUrl and aiExtracted fields only
-[ ] Manual test: upload a receipt image, verify MinIO bucket, verify aiExtracted
+[x] Manual test: upload a receipt image, verify MinIO bucket, verify aiExtracted
       fields returned in response
 ```
 
