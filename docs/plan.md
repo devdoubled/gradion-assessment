@@ -176,17 +176,17 @@ Commit: `feat(uploads): add MinIO file upload and Claude vision receipt extracti
 Goal: Admin can list all reports and approve or reject submitted ones.
 
 ```
-[ ] Implement AdminService
+[x] Implement AdminService
       → findAll(status?): find all reports across all users, with optional status filter
            populate userId with { email } for display
       → approve(reportId): find report, assertTransition(SUBMITTED, APPROVED), save
       → reject(reportId): find report, assertTransition(SUBMITTED, REJECTED), save
-[ ] Implement AdminController
+[x] Implement AdminController
       → all routes decorated with @Roles('admin')
       → GET  /admin/reports          ?status= filter
       → POST /admin/reports/:id/approve
       → POST /admin/reports/:id/reject
-[ ] Manual test: submit a report as user, approve as admin, verify terminal state
+[x] Manual test: submit a report as user, approve as admin, verify terminal state
 ```
 
 Commit: `feat(admin): add admin list, approve, and reject endpoints`

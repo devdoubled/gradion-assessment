@@ -6,6 +6,7 @@ import { AuthModule } from './auth/auth.module';
 import { ReportsModule } from './reports/reports.module';
 import { ItemsModule } from './items/items.module';
 import { UploadsModule } from './uploads/uploads.module';
+import { AdminModule } from './admin/admin.module';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { RolesGuard } from './auth/roles.guard';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
@@ -24,6 +25,7 @@ import { TransformInterceptor } from './common/interceptors/transform.intercepto
     ReportsModule,
     ItemsModule,
     UploadsModule,
+    AdminModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },

@@ -413,7 +413,7 @@ Track status here. Update as modules are completed.
 [x] Phase 3 — Reports module + state machine + unit tests
 [x] Phase 4 — Items module
 [x] Phase 5 — Uploads + extraction
-[ ] Phase 6 — Admin module
+[x] Phase 6 — Admin module
 [ ] Phase 7 — Integration test
 [ ] Phase 8 — Frontend: auth pages
 [ ] Phase 9 — Frontend: user report flow
