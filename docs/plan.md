@@ -11,20 +11,20 @@
 Goal: Repo structure, docker-compose, and both apps scaffolded and bootable.
 
 ```
-[ ] Create pnpm-workspace.yaml at repo root
-[ ] Create root package.json with workspace scripts and concurrently
-[ ] Scaffold apps/backend with NestJS CLI
+[x] Create pnpm-workspace.yaml at repo root
+[x] Create root package.json with workspace scripts and concurrently
+[x] Scaffold apps/backend with NestJS CLI
       → cd apps && npx @nestjs/cli new backend --package-manager pnpm --skip-git
-[ ] Scaffold apps/frontend with create-next-app
+[x] Scaffold apps/frontend with create-next-app
       → cd apps && npx create-next-app@latest frontend --typescript --tailwind --app --no-src-dir --import-alias "@/*" --skip-install
-[ ] Create docker-compose.yml at repo root
+[x] Create docker-compose.yml at repo root
       → services: mongodb (mongo:7), minio (minio/minio), backend (port 3001), frontend (port 3000)
-[ ] Create .env.example at repo root with all variables from CLAUDE.md section 9
-[ ] Create apps/backend/.env (copy from .env.example, fill local values)
-[ ] Create apps/frontend/.env.local with NEXT_PUBLIC_API_URL=http://localhost:3001
-[ ] Verify docker-compose up starts mongodb and minio cleanly
-[ ] Add MongooseModule.forRoot() to AppModule using MONGODB_URI from ConfigModule
-[ ] Verify backend connects to MongoDB on startup
+[x] Create .env.example at repo root with all variables from CLAUDE.md section 9
+[x] Create apps/backend/.env (copy from .env.example, fill local values)
+[x] Create apps/frontend/.env.local with NEXT_PUBLIC_API_URL=http://localhost:3001
+[x] Verify docker-compose up starts mongodb and minio cleanly
+[x] Add MongooseModule.forRoot() to AppModule using MONGODB_URI from ConfigModule
+[x] Verify backend connects to MongoDB on startup
 ```
 
 Commit: `chore: scaffold monorepo with NestJS backend and Next.js frontend`
