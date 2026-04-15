@@ -394,7 +394,7 @@ Track status here. Update as modules are completed.
 
 ```
 [x] Phase 1 — Foundation (monorepo, docker-compose, env)
-[ ] Phase 2 — Auth module
+[x] Phase 2 — Auth module
 [ ] Phase 3 — Reports module + state machine + unit tests
 [ ] Phase 4 — Items module
 [ ] Phase 5 — Uploads + extraction

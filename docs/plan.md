@@ -36,27 +36,27 @@ Commit: `chore: scaffold monorepo with NestJS backend and Next.js frontend`
 Goal: Signup, login, JWT issuance, global guards wired up.
 
 ```
-[ ] Install backend deps: @nestjs/passport, @nestjs/jwt, passport, passport-jwt,
+[x] Install backend deps: @nestjs/passport, @nestjs/jwt, passport, passport-jwt,
       bcrypt, @types/bcrypt, @nestjs/config, class-validator, class-transformer
-[ ] Create common/decorators/public.decorator.ts  (@Public())
-[ ] Create common/decorators/roles.decorator.ts   (@Roles(...roles))
-[ ] Create User schema (email, passwordHash select:false, role enum)
-[ ] Create signup.dto.ts and login.dto.ts with class-validator decorators
-[ ] Implement AuthService
+[x] Create common/decorators/public.decorator.ts  (@Public())
+[x] Create common/decorators/roles.decorator.ts   (@Roles(...roles))
+[x] Create User schema (email, passwordHash select:false, role enum)
+[x] Create signup.dto.ts and login.dto.ts with class-validator decorators
+[x] Implement AuthService
       → signup: hash password with bcrypt (rounds: 10), save user, return { id, email, role }
       → login: find by email, compare hash, sign JWT, return { accessToken }
       → JWT payload: { sub: userId, email, role }
-[ ] Implement JwtStrategy (validate returns { id, email, role })
-[ ] Implement JwtAuthGuard (extends AuthGuard('jwt'), skips @Public() routes)
-[ ] Implement RolesGuard (reads @Roles() via Reflector, returns 403 if mismatch)
-[ ] Register JwtAuthGuard and RolesGuard as global APP_GUARDs in AppModule
-[ ] Implement AuthController
+[x] Implement JwtStrategy (validate returns { id, email, role })
+[x] Implement JwtAuthGuard (extends AuthGuard('jwt'), skips @Public() routes)
+[x] Implement RolesGuard (reads @Roles() via Reflector, returns 403 if mismatch)
+[x] Register JwtAuthGuard and RolesGuard as global APP_GUARDs in AppModule
+[x] Implement AuthController
       → POST /auth/signup  (@Public())
       → POST /auth/login   (@Public())
-[ ] Create common/filters/http-exception.filter.ts and register globally
-[ ] Create common/interceptors/transform.interceptor.ts (strips passwordHash)
-[ ] Create common/pipes/validation.pipe.ts and register globally
-[ ] Manual test: signup → login → get accessToken
+[x] Create common/filters/http-exception.filter.ts and register globally
+[x] Create common/interceptors/transform.interceptor.ts (strips passwordHash)
+[x] Create common/pipes/validation.pipe.ts and register globally
+[x] Manual test: signup → login → get accessToken
 ```
 
 Commit: `feat(auth): implement JWT signup, login, and global guards`
