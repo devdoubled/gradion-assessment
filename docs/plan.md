@@ -225,32 +225,32 @@ Commit: `test(e2e): happy path DRAFT → SUBMITTED → APPROVED integration test
 Goal: Login and signup pages functional, JWT stored, redirects working.
 
 ```
-[ ] Install frontend deps: axios, jwt-decode
-[ ] Create lib/auth.ts
+[x] Install frontend deps: axios, jwt-decode
+[x] Create lib/auth.ts
       → getToken(): string | null
       → setToken(token: string): void
       → clearToken(): void
       → getRole(): 'user' | 'admin' | null  (decode JWT)
       → isAuthenticated(): boolean
-[ ] Create lib/api.ts
+[x] Create lib/api.ts
       → axios instance with baseURL = NEXT_PUBLIC_API_URL
       → request interceptor: attach Authorization header
       → response interceptor: on 401 clear token + redirect to /login
-[ ] Create app/(auth)/login/page.tsx
+[x] Create app/(auth)/login/page.tsx
       → form: email + password
       → calls POST /auth/login
       → on success: setToken, redirect to /reports (user) or /admin/reports (admin)
-[ ] Create app/(auth)/signup/page.tsx
+[x] Create app/(auth)/signup/page.tsx
       → form: email + password + role select (user/admin)
       → calls POST /auth/signup, then auto-login, redirect
-[ ] Create app/(user)/layout.tsx
+[x] Create app/(user)/layout.tsx
       → client component, checks isAuthenticated() on mount
       → redirects to /login if not authenticated
       → redirects to /admin/reports if role === 'admin'
-[ ] Create app/(admin)/layout.tsx
+[x] Create app/(admin)/layout.tsx
       → checks isAuthenticated() and getRole() === 'admin'
       → redirects non-admins to /reports
-[ ] Manual test: signup → login → redirect to reports → protected route blocks unauthenticated
+[x] Manual test: signup → login → redirect to reports → protected route blocks unauthenticated
 ```
 
 Commit: `feat(frontend): add auth pages, JWT helpers, and route guards`
