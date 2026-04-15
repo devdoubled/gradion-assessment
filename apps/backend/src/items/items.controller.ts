@@ -3,8 +3,6 @@ import {
   Controller,
   Delete,
   Get,
-  HttpCode,
-  HttpStatus,
   Param,
   Patch,
   Post,
@@ -14,6 +12,7 @@ import type { Request } from 'express';
 import { ItemsService } from './items.service';
 import { CreateItemDto } from './dto/create-item.dto';
 import { UpdateItemDto } from './dto/update-item.dto';
+import { ResponseMeta } from '../common/decorators/response-meta.decorator';
 
 @Controller('reports/:reportId/items')
 export class ItemsController {
@@ -44,7 +43,7 @@ export class ItemsController {
   }
 
   @Delete(':itemId')
-  @HttpCode(HttpStatus.NO_CONTENT)
+  @ResponseMeta('Delete successfully', '004')
   remove(
     @Param('reportId') reportId: string,
     @Param('itemId') itemId: string,

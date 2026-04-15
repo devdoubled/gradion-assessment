@@ -491,31 +491,64 @@ services:
 
 ---
 
-## 10. API Error Response Shape
+## 10. API Response Envelope
 
-All errors return a consistent JSON shape via `HttpExceptionFilter`:
+Every response — success and error — uses the same top-level shape.
+
+### Success (via `TransformInterceptor`)
 
 ```json
 {
-  "statusCode": 400,
-  "message": "Invalid status transition: APPROVED → DRAFT",
-  "error": "Bad Request",
-  "timestamp": "2025-01-15T10:30:00.000Z",
-  "path": "/reports/abc123/submit"
+  "status": "success",
+  "message": "Create successfully",
+  "messageCode": "002",
+  "data": {}
 }
 ```
 
-Validation errors from `class-validator` return `message` as an array of
-field-level error strings:
+`message` and `messageCode` are inferred from the HTTP method by default.
+Use `@ResponseMeta(message, code)` on a handler to override.
+
+| HTTP method | Default message | Default code |
+|---|---|---|
+| GET | Fetch successfully | `001` |
+| POST | Create successfully | `002` |
+| PATCH / PUT | Update successfully | `003` |
+| DELETE | Delete successfully | `004` |
+
+Special-purpose POST endpoints override via `@ResponseMeta`:
+
+| Endpoint | Message | Code |
+|---|---|---|
+| POST /reports/:id/submit | Submit successfully | `005` |
+| POST /admin/reports/:id/approve | Approve successfully | `006` |
+| POST /admin/reports/:id/reject | Reject successfully | `007` |
+
+`data` is `null` for DELETE responses (service returns `void`).
+
+### Error (via `HttpExceptionFilter`)
 
 ```json
 {
-  "statusCode": 422,
-  "message": [
-    "amount must be a positive number",
-    "currency must be a valid ISO 4217 code"
-  ],
-  "error": "Unprocessable Entity"
+  "status": "error",
+  "message": "Invalid status transition: APPROVED → DRAFT",
+  "messageCode": "E400",
+  "data": null,
+  "path": "/reports/abc123/submit",
+  "timestamp": "2025-01-15T10:30:00.000Z"
+}
+```
+
+`messageCode` is always `E` + the HTTP status code (e.g. `E401`, `E404`, `E409`, `E500`).
+
+Validation errors join all field messages into a single comma-separated string:
+
+```json
+{
+  "status": "error",
+  "message": "amount must be a positive number, currency must be a valid ISO 4217 code",
+  "messageCode": "E400",
+  "data": null
 }
 ```
 

@@ -3,7 +3,7 @@ import { Document, Types } from 'mongoose';
 
 export type ExpenseItemDocument = ExpenseItem & Document;
 
-@Schema({ timestamps: true })
+@Schema({ timestamps: true, collection: 'expense_items' })
 export class ExpenseItem {
   @Prop({ required: true, type: Types.ObjectId, ref: 'ExpenseReport' })
   reportId: Types.ObjectId;

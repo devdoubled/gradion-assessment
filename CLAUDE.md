@@ -171,6 +171,13 @@ src/
    Wrap `ExtractionService` call in try/catch. Return null fields on failure.
    The receipt URL is still saved. Log the error server-side.
 
+9. **Every response uses the standard envelope — no exceptions.**
+   Success: `{ status, message, messageCode, data }` via `TransformInterceptor`.
+   Error: `{ status, message, messageCode, data: null, path, timestamp }` via `HttpExceptionFilter`.
+   HTTP method infers default message/code. Override per-handler with `@ResponseMeta(message, code)`.
+   Codes: GET=001, POST=002, PATCH=003, DELETE=004, submit=005, approve=006, reject=007.
+   Error codes: `E` + HTTP status (E400, E401, E403, E404, E409, E500).
+
 ---
 
 ## 6. State Machine (Source of Truth)
