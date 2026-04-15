@@ -15,8 +15,6 @@ export function canTransition(from: ReportStatus, to: ReportStatus): boolean {
 
 export function assertTransition(from: ReportStatus, to: ReportStatus): void {
   if (!canTransition(from, to)) {
-    throw new BadRequestException(
-      `Invalid status transition: ${from} → ${to}`,
-    );
+    throw new BadRequestException(`Invalid status transition: ${from} → ${to}`);
   }
 }

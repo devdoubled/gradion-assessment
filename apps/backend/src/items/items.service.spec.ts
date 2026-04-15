@@ -66,7 +66,9 @@ describe('ItemsService', () => {
     service = module.get<ItemsService>(ItemsService);
   });
 
-  const mockExec = (value: unknown) => ({ exec: jest.fn().mockResolvedValue(value) });
+  const mockExec = (value: unknown) => ({
+    exec: jest.fn().mockResolvedValue(value),
+  });
 
   describe('create', () => {
     const dto = {
@@ -101,7 +103,9 @@ describe('ItemsService', () => {
     });
 
     it('throws BadRequestException when report is SUBMITTED', async () => {
-      mockReportModel.findOne.mockReturnValue(mockExec(makeReport('SUBMITTED')));
+      mockReportModel.findOne.mockReturnValue(
+        mockExec(makeReport('SUBMITTED')),
+      );
 
       await expect(service.create(reportId, userId, dto)).rejects.toThrow(
         BadRequestException,
@@ -132,10 +136,9 @@ describe('ItemsService', () => {
 
       await service.create(reportId, userId, dto);
 
-      expect(mockReportModel.findByIdAndUpdate).toHaveBeenCalledWith(
-        reportId,
-        { totalAmount: 80 },
-      );
+      expect(mockReportModel.findByIdAndUpdate).toHaveBeenCalledWith(reportId, {
+        totalAmount: 80,
+      });
     });
   });
 
@@ -148,10 +151,9 @@ describe('ItemsService', () => {
 
       await service.remove(itemId, reportId, userId);
 
-      expect(mockReportModel.findByIdAndUpdate).toHaveBeenCalledWith(
-        reportId,
-        { totalAmount: 50 },
-      );
+      expect(mockReportModel.findByIdAndUpdate).toHaveBeenCalledWith(reportId, {
+        totalAmount: 50,
+      });
     });
 
     it('handles empty items list (totalAmount becomes 0)', async () => {
@@ -162,14 +164,15 @@ describe('ItemsService', () => {
 
       await service.remove(itemId, reportId, userId);
 
-      expect(mockReportModel.findByIdAndUpdate).toHaveBeenCalledWith(
-        reportId,
-        { totalAmount: 0 },
-      );
+      expect(mockReportModel.findByIdAndUpdate).toHaveBeenCalledWith(reportId, {
+        totalAmount: 0,
+      });
     });
 
     it('throws BadRequestException when report is not DRAFT', async () => {
-      mockReportModel.findOne.mockReturnValue(mockExec(makeReport('SUBMITTED')));
+      mockReportModel.findOne.mockReturnValue(
+        mockExec(makeReport('SUBMITTED')),
+      );
 
       await expect(service.remove(itemId, reportId, userId)).rejects.toThrow(
         BadRequestException,

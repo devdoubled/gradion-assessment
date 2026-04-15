@@ -18,7 +18,9 @@ export class AuthService {
     private readonly jwtService: JwtService,
   ) {}
 
-  async signup(dto: SignupDto): Promise<{ id: string; email: string; role: string }> {
+  async signup(
+    dto: SignupDto,
+  ): Promise<{ id: string; email: string; role: string }> {
     const existing = await this.userModel.findOne({ email: dto.email }).exec();
     if (existing) throw new ConflictException('Email already in use');
 

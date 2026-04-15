@@ -23,11 +23,15 @@ function stripPasswordHash(obj: unknown): unknown {
 
 @Injectable()
 export class TransformInterceptor implements NestInterceptor {
-  intercept(_context: ExecutionContext, next: CallHandler): Observable<unknown> {
+  intercept(
+    _context: ExecutionContext,
+    next: CallHandler,
+  ): Observable<unknown> {
     return next.handle().pipe(
-      map((data) => {
-        if (data && typeof data.toObject === 'function') {
-          return stripPasswordHash(data.toObject());
+      map((data: unknown) => {
+        const doc = data as Record<string, unknown> | null;
+        if (doc && typeof doc['toObject'] === 'function') {
+          return stripPasswordHash((doc['toObject'] as () => unknown)());
         }
         return stripPasswordHash(data);
       }),

@@ -3,7 +3,10 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { ItemsController } from './items.controller';
 import { ItemsService } from './items.service';
 import { ExpenseItem, ExpenseItemSchema } from './schemas/item.schema';
-import { ExpenseReport, ExpenseReportSchema } from '../reports/schemas/report.schema';
+import {
+  ExpenseReport,
+  ExpenseReportSchema,
+} from '../reports/schemas/report.schema';
 
 @Module({
   imports: [

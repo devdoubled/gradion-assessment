@@ -6,7 +6,10 @@ import {
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { ExpenseItem, ExpenseItemDocument } from './schemas/item.schema';
-import { ExpenseReport, ExpenseReportDocument } from '../reports/schemas/report.schema';
+import {
+  ExpenseReport,
+  ExpenseReportDocument,
+} from '../reports/schemas/report.schema';
 import { CreateItemDto } from './dto/create-item.dto';
 import { UpdateItemDto } from './dto/update-item.dto';
 
@@ -37,7 +40,9 @@ export class ItemsService {
 
   private async recomputeTotal(reportId: string): Promise<void> {
     const result = await this.itemModel
-      .aggregate<{ total: number }>([
+      .aggregate<{
+        total: number;
+      }>([
         { $match: { reportId: new Types.ObjectId(reportId) } },
         { $group: { _id: null, total: { $sum: '$amount' } } },
       ])
@@ -121,11 +126,7 @@ export class ItemsService {
     } | null,
   ): Promise<ExpenseItemDocument> {
     const item = await this.itemModel
-      .findByIdAndUpdate(
-        itemId,
-        { receiptUrl, aiExtracted },
-        { new: true },
-      )
+      .findByIdAndUpdate(itemId, { receiptUrl, aiExtracted }, { new: true })
       .exec();
     if (!item) throw new NotFoundException('Item not found');
     return item;

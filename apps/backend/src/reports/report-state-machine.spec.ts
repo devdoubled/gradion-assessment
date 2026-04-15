@@ -138,7 +138,12 @@ describe('report-state-machine', () => {
     });
 
     it('throws BadRequestException for every transition out of APPROVED', () => {
-      const targets: ReportStatus[] = ['DRAFT', 'SUBMITTED', 'APPROVED', 'REJECTED'];
+      const targets: ReportStatus[] = [
+        'DRAFT',
+        'SUBMITTED',
+        'APPROVED',
+        'REJECTED',
+      ];
       for (const to of targets) {
         expect(() => assertTransition('APPROVED', to)).toThrow(
           BadRequestException,
