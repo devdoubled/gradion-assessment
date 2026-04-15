@@ -68,32 +68,32 @@ Commit: `feat(auth): implement JWT signup, login, and global guards`
 Goal: Full CRUD on own reports, submit endpoint, state machine unit tested.
 
 ```
-[ ] Create ExpenseReport schema (userId ref, title, description, status, totalAmount)
-[ ] Create report-state-machine.ts
+[x] Create ExpenseReport schema (userId ref, title, description, status, totalAmount)
+[x] Create report-state-machine.ts
       → ReportStatus type
       → VALID_TRANSITIONS record
       → canTransition(from, to): boolean
       → assertTransition(from, to): void  — throws BadRequestException on invalid
-[ ] Write report-state-machine.spec.ts
+[x] Write report-state-machine.spec.ts
       → test every valid transition passes
       → test every invalid transition throws (including APPROVED → anything)
-[ ] Run tests: pnpm --filter backend test — all must pass before proceeding
-[ ] Create create-report.dto.ts and update-report.dto.ts
-[ ] Implement ReportsService
+[x] Run tests: pnpm --filter backend test — all must pass before proceeding
+[x] Create create-report.dto.ts and update-report.dto.ts
+[x] Implement ReportsService
       → create(userId, dto): report starts as DRAFT, totalAmount: 0
       → findAll(userId, status?): list own reports with optional status filter
       → findOne(id, userId): find by { _id: id, userId } — 404 if not found
       → update(id, userId, dto): only if DRAFT, else 400
       → delete(id, userId): only if DRAFT, else 400
       → submit(id, userId): assertTransition(DRAFT, SUBMITTED), save
-[ ] Implement ReportsController
+[x] Implement ReportsController
       → GET    /reports          (@Roles not needed — authenticated user only)
       → POST   /reports
       → GET    /reports/:id
       → PATCH  /reports/:id
       → DELETE /reports/:id
       → POST   /reports/:id/submit
-[ ] Manual test: full CRUD cycle + submit
+[x] Manual test: full CRUD cycle + submit
 ```
 
 Commit: `feat(reports): add report CRUD, submit endpoint, and state machine`
@@ -106,10 +106,10 @@ Commit: `test(reports): unit tests for all state machine transitions`
 Goal: Expense item CRUD with DRAFT lock, totalAmount recomputed on every mutation.
 
 ```
-[ ] Create ExpenseItem schema (reportId ref, amount, currency, category,
+[x] Create ExpenseItem schema (reportId ref, amount, currency, category,
       merchantName, transactionDate, receiptUrl, aiExtracted sub-doc)
-[ ] Create create-item.dto.ts and update-item.dto.ts
-[ ] Implement ItemsService
+[x] Create create-item.dto.ts and update-item.dto.ts
+[x] Implement ItemsService
       → assertReportDraft(reportId, userId): fetches report, throws 400 if not DRAFT,
            throws 404 if report not found or not owned by user
       → recomputeTotal(reportId): aggregates $sum of items.amount, updates report
@@ -117,18 +117,18 @@ Goal: Expense item CRUD with DRAFT lock, totalAmount recomputed on every mutatio
       → findAll(reportId, userId): verify ownership then list items
       → update(itemId, reportId, userId, dto): assertReportDraft → update → recomputeTotal
       → delete(itemId, reportId, userId): assertReportDraft → delete → recomputeTotal
-[ ] Write items.service.spec.ts
+[x] Write items.service.spec.ts
       → create succeeds when report is DRAFT
       → create throws 400 when report is SUBMITTED / APPROVED / REJECTED
       → totalAmount is recomputed correctly after create
       → totalAmount is recomputed correctly after delete
-[ ] Run tests: all must pass before proceeding
-[ ] Implement ItemsController (nested under /reports/:reportId/items)
+[x] Run tests: all must pass before proceeding
+[x] Implement ItemsController (nested under /reports/:reportId/items)
       → GET    /reports/:reportId/items
       → POST   /reports/:reportId/items
       → PATCH  /reports/:reportId/items/:itemId
       → DELETE /reports/:reportId/items/:itemId
-[ ] Manual test: add two items, verify totalAmount on report, submit, try to edit → 400
+[x] Manual test: add two items, verify totalAmount on report, submit, try to edit → 400
 ```
 
 Commit: `feat(items): add expense item CRUD with DRAFT lock and totalAmount recomputation`
