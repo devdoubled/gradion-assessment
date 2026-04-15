@@ -70,6 +70,14 @@ gradion-assessment/              ← repo root
 | AI extraction | Anthropic Claude API (vision) | Synchronous, claude-sonnet-4-5 model |
 | Package manager | pnpm workspaces | root `pnpm-workspace.yaml` |
 | Testing | Jest + Supertest + mongodb-memory-server | backend only |
+| API Docs | `@nestjs/swagger` | Swagger UI at `http://localhost:3001/api/docs` |
+
+### Swagger Setup
+- Configured in `apps/backend/src/main.ts` via `DocumentBuilder` + `SwaggerModule`.
+- UI served at `/api/docs`; JSON spec at `/api/docs-json`.
+- All DTOs use `@ApiProperty` / `@ApiPropertyOptional` from `@nestjs/swagger`.
+- `UpdateReportDto` and `UpdateItemDto` extend `PartialType` from `@nestjs/swagger` (not `@nestjs/mapped-types`) so Swagger inherits parent properties.
+- All authenticated controllers carry `@ApiBearerAuth()`. Use the **Authorize** button in the UI and paste the JWT from `/auth/login`.
 
 ---
 

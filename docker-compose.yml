@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   mongodb:
     image: mongo:7
@@ -26,28 +24,32 @@ services:
 
   backend:
     build:
-      context: ./apps/backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: apps/backend/Dockerfile
     ports:
       - '3001:3001'
     depends_on:
       - mongodb
       - minio
     env_file:
-      - .env
+      - apps/backend/.env
+    environment:
+      # Override localhost references with Docker service names
+      MONGODB_URI: mongodb://mongodb:27017/gradion
+      MINIO_ENDPOINT: minio
     networks:
       - app-network
 
   frontend:
     build:
-      context: ./apps/frontend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: apps/frontend/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:3001
     ports:
       - '3000:3000'
     depends_on:
       - backend
-    env_file:
-      - .env
     networks:
       - app-network
 
