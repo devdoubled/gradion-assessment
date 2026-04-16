@@ -128,14 +128,18 @@ export class ItemsService {
     itemId: string,
     receiptUrl: string,
     aiExtracted: {
-      merchantName: string | null;
-      amount: number | null;
-      currency: string | null;
-      transactionDate: string | null;
+      merchantName: { value: string | null; confidence: number | null };
+      amount: { value: number | null; confidence: number | null };
+      currency: { value: string | null; confidence: number | null };
+      transactionDate: { value: string | null; confidence: number | null };
     } | null,
   ): Promise<ExpenseItemDocument> {
     const item = await this.itemModel
-      .findByIdAndUpdate(itemId, { receiptUrl, aiExtracted }, { new: true })
+      .findByIdAndUpdate(
+        itemId,
+        { receiptUrl, aiExtracted },
+        { returnDocument: 'after' },
+      )
       .exec();
     if (!item) throw new NotFoundException('Item not found');
     return item;

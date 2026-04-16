@@ -28,18 +28,30 @@ export class ExpenseItem {
 
   @Prop({
     type: {
-      merchantName: { type: String, default: null },
-      amount: { type: Number, default: null },
-      currency: { type: String, default: null },
-      transactionDate: { type: String, default: null },
+      merchantName: {
+        value: { type: String, default: null },
+        confidence: { type: Number, default: null },
+      },
+      amount: {
+        value: { type: Number, default: null },
+        confidence: { type: Number, default: null },
+      },
+      currency: {
+        value: { type: String, default: null },
+        confidence: { type: Number, default: null },
+      },
+      transactionDate: {
+        value: { type: String, default: null },
+        confidence: { type: Number, default: null },
+      },
     },
     default: null,
   })
   aiExtracted: {
-    merchantName: string | null;
-    amount: number | null;
-    currency: string | null;
-    transactionDate: string | null;
+    merchantName: { value: string | null; confidence: number | null };
+    amount: { value: number | null; confidence: number | null };
+    currency: { value: string | null; confidence: number | null };
+    transactionDate: { value: string | null; confidence: number | null };
   } | null;
 }
 
