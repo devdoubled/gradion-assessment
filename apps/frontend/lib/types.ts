@@ -8,6 +8,15 @@ export interface User {
   updatedAt: string;
 }
 
+export interface StatusHistoryEntry {
+  from: ReportStatus | null;
+  to: ReportStatus;
+  actorId: string;
+  actorRole: 'user' | 'admin';
+  note: string | null;
+  timestamp: string;
+}
+
 export interface ExpenseReport {
   _id: string;
   userId: string | { _id: string; email: string };
@@ -15,6 +24,7 @@ export interface ExpenseReport {
   description: string;
   status: ReportStatus;
   totalAmount: number;
+  statusHistory: StatusHistoryEntry[];
   createdAt: string;
   updatedAt: string;
 }
@@ -29,10 +39,10 @@ export interface ExpenseItem {
   transactionDate: string;
   receiptUrl: string | null;
   aiExtracted: {
-    merchantName: string | null;
-    amount: number | null;
-    currency: string | null;
-    transactionDate: string | null;
+    merchantName: { value: string | null; confidence: number | null };
+    amount: { value: number | null; confidence: number | null };
+    currency: { value: string | null; confidence: number | null };
+    transactionDate: { value: string | null; confidence: number | null };
   } | null;
   createdAt: string;
   updatedAt: string;

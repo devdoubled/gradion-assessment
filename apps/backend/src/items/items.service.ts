@@ -83,6 +83,15 @@ export class ItemsService {
       .exec();
   }
 
+  async findAllForAdmin(reportId: string): Promise<ExpenseItemDocument[]> {
+    const report = await this.reportModel.findById(reportId).exec();
+    if (!report) throw new NotFoundException('Report not found');
+    return this.itemModel
+      .find({ reportId: new Types.ObjectId(reportId) })
+      .sort({ createdAt: 1 })
+      .exec();
+  }
+
   async update(
     itemId: string,
     reportId: string,
@@ -94,7 +103,7 @@ export class ItemsService {
       .findOneAndUpdate(
         { _id: itemId, reportId: new Types.ObjectId(reportId) },
         dto,
-        { new: true },
+        { returnDocument: 'after' },
       )
       .exec();
     if (!item) throw new NotFoundException('Item not found');

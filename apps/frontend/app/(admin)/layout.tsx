@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { isAuthenticated, getRole, getUserEmail, clearToken } from '@/lib/auth';
@@ -19,16 +19,22 @@ const NAV = [
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
+  const [checked, setChecked] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated()) {
       router.replace('/login');
       return;
     }
-    if (getRole() !== 'admin') router.replace('/reports');
-  }, [router]);
+    if (getRole() !== 'admin') {
+      router.replace('/reports');
+      return;
+    }
+    setChecked(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  if (!isAuthenticated() || getRole() !== 'admin') return null;
+  if (!checked) return null;
 
   const email = getUserEmail() ?? '';
 
