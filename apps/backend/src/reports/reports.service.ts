@@ -29,6 +29,16 @@ export class ReportsService {
       userId: new Types.ObjectId(userId),
       status: 'DRAFT',
       totalAmount: 0,
+      statusHistory: [
+        {
+          from: null,
+          to: 'DRAFT',
+          actorId: new Types.ObjectId(userId),
+          actorRole: 'user',
+          note: null,
+          timestamp: new Date(),
+        },
+      ],
     });
     return report.save();
   }
