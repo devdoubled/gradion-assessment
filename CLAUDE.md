@@ -206,15 +206,17 @@ Valid transitions:
 - `DRAFT` → `SUBMITTED` (user: submit)
 - `SUBMITTED` → `APPROVED` (admin: approve)
 - `SUBMITTED` → `REJECTED` (admin: reject)
-- `REJECTED` → `DRAFT` (user: implicitly on edit, or explicit reset)
+- `REJECTED` → `DRAFT` (user: explicit via `POST /reports/:id/reopen`)
 
 Invalid (must throw `BadRequestException`):
 - Any transition not listed above
 - Any attempt to leave `APPROVED`
 
-**Re-submit decision:** `REJECTED → DRAFT` first, then user calls submit again
-(`DRAFT → SUBMITTED`). Direct `REJECTED → SUBMITTED` is not allowed.
+**Re-submit decision:** `REJECTED → DRAFT` first (via reopen endpoint), then user
+calls submit again (`DRAFT → SUBMITTED`). Direct `REJECTED → SUBMITTED` is not allowed.
 Rationale: forces user to acknowledge the rejection and re-confirm their edits.
+The frontend shows a "Re-open & Edit" button on REJECTED reports that calls the
+reopen endpoint, returning the report to DRAFT so items can be edited again.
 
 ---
 
@@ -231,8 +233,16 @@ createdAt, updatedAt
 _id, userId (ref:User), title, description,
 status ('DRAFT'|'SUBMITTED'|'APPROVED'|'REJECTED'),
 totalAmount (number, server-computed),
+statusHistory: [{
+  from: ReportStatus|null, to: ReportStatus,
+  actorId (ref:User), actorRole ('user'|'admin'),
+  note: string|null, timestamp: Date
+}],
 createdAt, updatedAt
 ```
+
+`statusHistory` is appended on every state transition (including initial DRAFT creation).
+`from` is null for the first entry. Never mutated after appending.
 
 ### ExpenseItem
 ```
@@ -240,12 +250,18 @@ _id, reportId (ref:ExpenseReport),
 amount (number), currency (string, ISO 4217),
 category (string), merchantName (string),
 transactionDate (Date), receiptUrl (string|null),
-aiExtracted: { merchantName, amount, currency, transactionDate } | null,
+aiExtracted: {
+  merchantName: { value: string|null, confidence: number|null },
+  amount:       { value: number|null, confidence: number|null },
+  currency:     { value: string|null, confidence: number|null },
+  transactionDate: { value: string|null, confidence: number|null }
+} | null,
 createdAt, updatedAt
 ```
 
-`aiExtracted` stores raw LLM output for audit. User overrides are saved
-on the top-level fields, not inside `aiExtracted`.
+`aiExtracted` stores raw LLM output with per-field confidence scores (0.0–1.0).
+`confidence: null` means extraction failed or pre-dates Phase 13.
+User overrides are saved on the top-level fields, not inside `aiExtracted`.
 
 ---
 
@@ -265,6 +281,7 @@ GET    /reports/:id               get own report
 PATCH  /reports/:id               update (DRAFT only)
 DELETE /reports/:id               delete (DRAFT only)
 POST   /reports/:id/submit        DRAFT → SUBMITTED
+POST   /reports/:id/reopen        REJECTED → DRAFT  (code 008)
 ```
 
 ### Items (authenticated user)
@@ -279,8 +296,10 @@ POST   /items/:itemId/receipt                upload receipt + extract
 ### Admin (admin role only)
 ```
 GET  /admin/reports                  all reports, ?status= filter
+GET  /admin/reports/:id              get single report (with userId populated, includes statusHistory)
+GET  /admin/reports/:id/items        list items for any report (no ownership check)
 POST /admin/reports/:id/approve      SUBMITTED → APPROVED
-POST /admin/reports/:id/reject       SUBMITTED → REJECTED
+POST /admin/reports/:id/reject       SUBMITTED → REJECTED  body: { note?: string }
 ```
 
 ---
@@ -329,16 +348,21 @@ apps/frontend/
 │   │               └── [itemId]/edit/page.tsx
 │   └── (admin)/
 │       ├── layout.tsx              ← auth guard: redirects non-admins
-│       └── admin/reports/page.tsx  ← all reports, approve/reject
+│       └── admin/reports/
+│           ├── page.tsx            ← all reports, approve/reject, status filter tabs
+│           └── [id]/page.tsx       ← read-only detail, approve/reject, audit trail (Phase 14)
 ├── components/
 │   ├── StatusBadge.tsx
 │   ├── ReportCard.tsx
-│   ├── ReceiptUploader.tsx         ← manages 5 extraction states
-│   ├── ExtractionPreview.tsx       ← pre-filled editable fields
-│   └── SubmitButton.tsx
+│   ├── ReceiptUploader.tsx         ← manages extraction states (idle/uploading/extracting/complete/error)
+│   ├── ExtractionPreview.tsx       ← pre-filled fields + confidence badges (Phase 13)
+│   ├── ConfirmDialog.tsx           ← reusable confirm/destructive alert dialog
+│   └── AuditTimeline.tsx           ← Phase 14: renders statusHistory entries
 └── lib/
     ├── api.ts                      ← axios instance, JWT interceptor
-    └── auth.ts                     ← token helpers, role decode
+    ├── auth.ts                     ← token helpers, role decode
+    ├── format.ts                   ← formatAmount, formatDate, groupByCurrency
+    └── types.ts                    ← ReportStatus, ExpenseReport, ExpenseItem, AuthResponse
 ```
 
 **Route guard rules (enforced via layout.tsx in each route group):**
@@ -429,7 +453,10 @@ Track status here. Update as modules are completed.
 [x] Phase 6 — Admin module
 [x] Phase 7 — Integration test
 [x] Phase 8 — Frontend: auth pages
-[ ] Phase 9 — Frontend: user report flow
-[ ] Phase 10 — Frontend: admin view
-[ ] Phase 11 — DECISIONS.md + README.md + polish
+[x] Phase 9 — Frontend: user report flow
+[x] Phase 10 — Frontend: admin view
+[x] Phase 11 — DECISIONS.md + README.md + polish
+[ ] Phase 12 — Optional: async extraction queue (BullMQ + Redis)
+[x] Phase 13 — Optional: confidence scores in extraction UI
+[x] Phase 14 — Optional: per-report audit trail with rejection notes
 ```

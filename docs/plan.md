@@ -262,45 +262,49 @@ Commit: `feat(frontend): add auth pages, JWT helpers, and route guards`
 Goal: Full user journey from report list through item entry and submission.
 
 ```
-[ ] Create components/StatusBadge.tsx
+[x] Create components/StatusBadge.tsx
       → DRAFT=gray, SUBMITTED=blue, APPROVED=green, REJECTED=red
       → Tailwind pill with label
-[ ] Create components/ReportCard.tsx
+[x] Create components/ReportCard.tsx
       → title, status badge, totalAmount, date, link to detail
-[ ] Create app/(user)/reports/page.tsx
+[x] Create app/(user)/reports/page.tsx
       → fetch GET /reports on load
       → list of ReportCards
       → "New Report" button
       → status filter tabs (All / Draft / Submitted / Approved / Rejected)
-[ ] Create app/(user)/reports/new/page.tsx
+[x] Create app/(user)/reports/new/page.tsx
       → form: title + description
       → POST /reports on submit
       → redirect to /reports/:id on success
-[ ] Create app/(user)/reports/[id]/page.tsx
+[x] Create app/(user)/reports/[id]/page.tsx
       → fetch report + items
       → show title, status badge, totalAmount
       → items table: merchant, amount, currency, date, receipt icon
       → "Add Item" button (disabled if not DRAFT)
       → "Submit Report" button (disabled if not DRAFT)
+      → "Re-open & Edit" button shown when REJECTED → POST /reports/:id/reopen → DRAFT
       → submit calls POST /reports/:id/submit, refreshes status
-[ ] Create components/ExtractionPreview.tsx
+[x] Create components/ExtractionPreview.tsx
       → displays extracted fields as read-only preview with "Override" affordance
-[ ] Create components/ReceiptUploader.tsx
+[x] Create components/ReceiptUploader.tsx
       → file input (accept: image/*, application/pdf)
       → manages ExtractionState discriminated union:
            idle / uploading / extracting / complete / error
       → on file select: POST /items/:itemId/receipt
       → on complete: calls onExtracted(fields) callback to pre-fill form
-[ ] Create app/(user)/reports/[id]/items/new/page.tsx
+[x] Create app/(user)/reports/[id]/items/new/page.tsx
       → form: amount, currency, category, merchantName, transactionDate
       → ReceiptUploader at top — pre-fills form on extraction complete
       → all fields remain editable after pre-fill
       → POST /reports/:reportId/items on save
-[ ] Create app/(user)/reports/[id]/items/[itemId]/edit/page.tsx
+[x] Create app/(user)/reports/[id]/items/[itemId]/edit/page.tsx
       → same form, pre-filled with existing item data
       → PATCH /reports/:reportId/items/:itemId on save
-[ ] Manual test: create report → add 2 items with receipts → verify totalAmount → submit
+[x] Manual test: create report → add 2 items with receipts → verify totalAmount → submit
 ```
+
+Backend additions made during Phase 9:
+- POST /reports/:id/reopen  (REJECTED → DRAFT) — ReportsService.reopen(), code 008
 
 Commit: `feat(frontend): add report list, detail, and item form with receipt upload`
 
@@ -311,7 +315,7 @@ Commit: `feat(frontend): add report list, detail, and item form with receipt upl
 Goal: Admin can see all reports and approve or reject submitted ones.
 
 ```
-[ ] Create app/(admin)/admin/reports/page.tsx
+[x] Create app/(admin)/admin/reports/page.tsx
       → fetch GET /admin/reports on load
       → table: user email, report title, status badge, totalAmount, date, actions
       → status filter (All / Submitted / Approved / Rejected)
@@ -319,9 +323,19 @@ Goal: Admin can see all reports and approve or reject submitted ones.
       → "Reject" button (only shown for SUBMITTED reports)
       → approve calls POST /admin/reports/:id/approve, refreshes row
       → reject calls POST /admin/reports/:id/reject, refreshes row
-      → clicking report title navigates to read-only detail view
-[ ] Manual test: submit report as user, approve as admin, verify status update in both views
+      → clicking row navigates to read-only detail view
+[x] Create app/(admin)/admin/reports/[id]/page.tsx
+      → fetch GET /admin/reports/:id + GET /admin/reports/:id/items
+      → read-only items table (no edit/delete)
+      → summary card: totalAmount, item count, submitted-by, created date
+      → "Approve" / "Reject" buttons with confirmation dialog (SUBMITTED only)
+      → back button to /admin/reports
+[x] Manual test: submit report as user, approve as admin, verify status update in both views
 ```
+
+Backend additions made during Phase 10:
+- GET /admin/reports/:id           — AdminService.findOne() (with userId populated)
+- GET /admin/reports/:id/items     — ItemsService.findAllForAdmin() (no ownership check)
 
 Commit: `feat(frontend): add admin report list with approve and reject actions`
 
@@ -332,29 +346,142 @@ Commit: `feat(frontend): add admin report list with approve and reject actions`
 Goal: Assessment deliverables complete, git history clean, reviewer can run in 5 minutes.
 
 ```
-[ ] Write DECISIONS.md covering:
+[x] Write DECISIONS.md covering:
       → Stack choices and why (NestJS, Next.js, MongoDB, MinIO)
       → REJECTED → DRAFT (not direct re-submit) — rationale
       → Synchronous extraction — rationale and acknowledged trade-off
       → totalAmount as stored computed field — rationale and drift prevention
       → MongoDB vs PostgreSQL — honest trade-off
-      → "One more day" section (~300–600 words): async extraction with BullMQ,
-           confidence scores in UI, per-report audit trail
-[ ] Write README.md covering:
+      → Ownership checks in service queries (404 not 403)
+      → API response envelope design
+      → "One more day" section: async extraction with BullMQ + confidence scores,
+           per-report audit trail with rejection notes, role-scoped admin item access
+[x] Write README.md covering:
       → Prerequisites (Node.js 20+, pnpm, Docker)
-      → Setup: clone → cp .env.example .env → docker-compose up → pnpm install → pnpm dev
+      → Setup: clone → cp .env.example → fill ANTHROPIC_API_KEY → pnpm dev:infra → pnpm install → pnpm dev
       → Running tests: pnpm test, pnpm test:e2e
       → Architecture overview (2 paragraphs)
       → AI usage note: which tools, how they helped, where output was corrected
-[ ] Review git log — ensure no single giant commit, messages follow convention
-[ ] Verify docker-compose up → pnpm install → pnpm dev boots cleanly on a cold start
-[ ] Verify pnpm test and pnpm test:e2e both pass
-[ ] Final check: no console.log left in production code paths
-[ ] Final check: .env not committed (only .env.example)
-[ ] Final check: passwordHash never appears in any API response
+[x] Review git log — no single giant commit, messages follow convention
+[x] Verify pnpm test and pnpm test:e2e both pass (39 tests passing)
+[x] Final check: no console.log left in production code paths
+[x] Final check: .env not committed (only .env.example) — confirmed gitignored
+[x] Final check: passwordHash never appears in any API response (select:false + TransformInterceptor)
 ```
 
 Commit: `docs: add DECISIONS.md, README.md, and AI usage note`
+
+---
+
+## Phase 12 — Optional: Async Receipt Processing (BullMQ + Redis)
+
+Goal: Replace blocking Anthropic API call with a job queue. Upload returns immediately;
+frontend polls for extraction result. Enables retries and removes 2–5 s blocking wait.
+
+```
+[ ] Add redis service to docker-compose.yml (image: redis:7, port 6379)
+[ ] Add REDIS_HOST and REDIS_PORT to .env.example and apps/backend/.env
+[ ] Install backend deps: @nestjs/bull, bull, @types/bull, ioredis
+[ ] Create src/extraction-queue/extraction-queue.module.ts
+      → registers BullModule.forFeature({ name: 'extraction' })
+      → imports UploadsModule, ItemsModule
+[ ] Create src/extraction-queue/extraction.processor.ts
+      → @Processor('extraction') class
+      → @Process() handler: receives { itemId, buffer (base64), mimetype }
+      → calls ExtractionService.extract() → calls ItemsService.attachReceipt()
+      → on failure: logs error, sets aiExtracted: null on item
+      → job options: attempts: 3, backoff: { type: 'exponential', delay: 2000 }
+[ ] Update UploadsController POST /items/:itemId/receipt
+      → uploads to MinIO → returns { receiptUrl, jobId } immediately
+      → enqueues extraction job — does NOT await ExtractionService
+      → sets item.receiptUrl via ItemsService.attachReceipt() (aiExtracted: null for now)
+[ ] Add GET /items/:itemId/extraction-status endpoint in UploadsController
+      → fetches job from queue by jobId
+      → returns { status: 'pending' | 'processing' | 'complete' | 'failed', aiExtracted? }
+[ ] Update ReceiptUploader component (frontend)
+      → add 'pending' state to ExtractionState discriminated union
+      → after upload success: enter 'pending' state with jobId
+      → poll GET /items/:itemId/extraction-status every 2 s (max 60 s)
+      → on complete: enter 'complete' state with aiExtracted fields
+      → on failed / timeout: enter 'error' state
+[ ] Unit test: extraction processor succeeds and calls attachReceipt
+[ ] Unit test: extraction processor handles Anthropic API failure gracefully
+```
+
+Commit: `feat(extraction): async BullMQ queue for receipt processing`
+
+---
+
+## Phase 13 — Optional: Confidence Scores in UI
+
+Goal: Surface per-field confidence from the LLM so users know which extracted
+values to trust and which to verify carefully.
+
+```
+[x] Update ExtractionService prompt
+      → request JSON shape: { merchantName: { value: string|null, confidence: number },
+           amount: { value: number|null, confidence: number },
+           currency: { value: string|null, confidence: number },
+           transactionDate: { value: string|null, confidence: number } }
+      → confidence range: 0.0 (no confidence) – 1.0 (certain)
+[x] Update ExtractedFields interface to include confidence per field
+[x] Update aiExtracted sub-document schema on ExpenseItem
+      → each field becomes { value: T|null, confidence: number|null }
+      → keep backwards-compatible: confidence defaults to null for pre-existing items
+[x] Update ItemsService.attachReceipt() to accept the new aiExtracted shape
+[x] Update ExtractionPreview component
+      → each pre-filled field shows a confidence badge alongside the value:
+           ≥ 0.85 → green "High" badge
+           0.60–0.84 → amber "Review" badge with tooltip "AI is uncertain — please verify"
+           < 0.60 → red "Low" badge — field is highlighted as needing manual check
+      → no confidence (null) → no badge shown (legacy/failed extraction)
+[x] Update new/edit item forms to receive and pass confidence to ExtractionPreview
+[x] TooltipProvider added to root layout for tooltip support
+```
+
+Commit: `feat(extraction): confidence scores per field in UI`
+
+---
+
+## Phase 14 — Optional: Per-report Audit Trail
+
+Goal: Every status transition is recorded with actor, timestamp, and optional
+rejection note. Admins see the full history on the report detail view.
+
+```
+[x] Add statusHistory sub-document to ExpenseReport schema
+      → type StatusHistoryEntry = {
+           from: ReportStatus | null   (null for initial DRAFT creation)
+           to:   ReportStatus
+           actorId:   ObjectId (ref: User)
+           actorRole: 'user' | 'admin'
+           note: string | null
+           timestamp: Date
+         }
+      → statusHistory: [StatusHistoryEntry]  (default: [])
+[x] Append history entry on every transition:
+      → ReportsService.create(): append { from: null, to: 'DRAFT', actorRole: 'user', ... }
+      → ReportsService.submit(): append { from: 'DRAFT', to: 'SUBMITTED', ... }
+      → ReportsService.reopen(): append { from: 'REJECTED', to: 'DRAFT', ... }
+      → AdminService.approve(): append { from: 'SUBMITTED', to: 'APPROVED', ... }
+      → AdminService.reject(note?): append { from: 'SUBMITTED', to: 'REJECTED', note, ... }
+[x] Update AdminService.reject() to accept optional note: string parameter
+[x] Update admin reject endpoint body DTO: { note?: string }  (admin/dto/reject-report.dto.ts)
+[x] Update ConfirmDialog used for rejection in frontend to include optional textarea
+      → "Reason for rejection (optional)" field in the reject dialog
+      → passes note to POST /admin/reports/:id/reject body
+[x] Update admin detail page to render statusHistory timeline
+      → list of entries, newest first
+      → each entry: actor role chip, status transition arrow, note (if any), timestamp
+[x] Update user detail page to show rejection note when status is REJECTED
+      → prominent banner: "Rejected — [note]" if note is present
+[x] Unit test: statusHistory grows correctly across submit → reject → reopen → submit cycle
+      (reports.service.spec.ts — 6 tests)
+[x] Unit test: rejection note is stored and returned correctly
+      (admin.service.spec.ts — 4 tests)
+```
+
+Commit: `feat(audit): per-report status history with rejection notes`
 
 ---
 

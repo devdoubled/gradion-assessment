@@ -144,16 +144,21 @@ gradion-assessment/
 │       │       ├── layout.tsx
 │       │       └── admin/
 │       │           └── reports/
-│       │               └── page.tsx
+│       │               ├── page.tsx
+│       │               └── [id]/
+│       │                   └── page.tsx
 │       ├── components/
 │       │   ├── StatusBadge.tsx
 │       │   ├── ReportCard.tsx
 │       │   ├── ReceiptUploader.tsx
-│       │   ├── ExtractionPreview.tsx
-│       │   └── SubmitButton.tsx
+│       │   ├── ExtractionPreview.tsx  (Phase 13: adds confidence badges)
+│       │   ├── ConfirmDialog.tsx
+│       │   └── AuditTimeline.tsx      (Phase 14: status history timeline)
 │       ├── lib/
 │       │   ├── api.ts
-│       │   └── auth.ts
+│       │   ├── auth.ts
+│       │   ├── format.ts
+│       │   └── types.ts
 │       ├── package.json
 │       ├── tsconfig.json
 │       └── next.config.ts
@@ -237,10 +242,21 @@ Single repository, single Git history, shared tooling. `apps/backend` and `apps/
   description:  string
   status:       'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'REJECTED'
   totalAmount:  number          // computed — never accepted from client
+  statusHistory: [{             // Phase 14 — appended on every transition
+    from:       ReportStatus | null   // null for initial DRAFT creation
+    to:         ReportStatus
+    actorId:    ObjectId              // ref: 'User'
+    actorRole:  'user' | 'admin'
+    note:       string | null         // populated on rejection
+    timestamp:  Date
+  }]
   createdAt:    Date
   updatedAt:    Date
 }
 ```
+
+`statusHistory` is append-only — entries are never mutated after writing. The
+initial DRAFT creation appends the first entry with `from: null`.
 
 `totalAmount` is a stored computed field. It is recalculated by `ItemsService`
 on every item `create`, `update`, and `delete` using a MongoDB `$sum` aggregation
@@ -260,19 +276,20 @@ prevented by never accepting `totalAmount` as input anywhere in the API.
   merchantName:    string
   transactionDate: Date
   receiptUrl:      string | null  // MinIO object key
-  aiExtracted: {                  // raw LLM output — stored for audit
-    merchantName:    string | null
-    amount:          number | null
-    currency:        string | null
-    transactionDate: string | null  // ISO 8601 string from LLM
+  aiExtracted: {                  // raw LLM output with confidence — Phase 13
+    merchantName:    { value: string | null, confidence: number | null }
+    amount:          { value: number | null, confidence: number | null }
+    currency:        { value: string | null, confidence: number | null }
+    transactionDate: { value: string | null, confidence: number | null }
   } | null
   createdAt:    Date
   updatedAt:    Date
 }
 ```
 
-`aiExtracted` stores the raw extraction result regardless of what the user
-saves on the top-level fields. This allows future audit or confidence comparison.
+`aiExtracted` stores raw extraction output with per-field confidence scores (0.0–1.0).
+`confidence: null` means the item pre-dates Phase 13 or extraction failed.
+User overrides are saved on the top-level fields, not inside `aiExtracted`.
 
 ---
 
@@ -309,11 +326,13 @@ export function assertTransition(from: ReportStatus, to: ReportStatus): void {
 `ReportsService` calls `assertTransition` before every `findOneAndUpdate`.
 No controller, guard, or other service calls this function directly.
 
-**REJECTED → re-submit:** Users transition `REJECTED → DRAFT` (via edit or
-explicit reset), then call the submit endpoint (`DRAFT → SUBMITTED`). Direct
-`REJECTED → SUBMITTED` is not allowed. This forces the user to consciously
-re-confirm their edits before re-entering the admin queue and produces a cleaner
-audit trail with a visible DRAFT state between rejections.
+**REJECTED → re-submit:** Users call `POST /reports/:id/reopen` to transition
+`REJECTED → DRAFT`, then edit their report, then call the submit endpoint
+(`DRAFT → SUBMITTED`). Direct `REJECTED → SUBMITTED` is not allowed. This forces
+the user to consciously acknowledge the rejection and re-confirm their edits before
+re-entering the admin queue, producing a cleaner audit trail with a visible DRAFT
+state between rejections. The frontend surfaces this as a "Re-open & Edit" button
+shown only when a report's status is REJECTED.
 
 ---
 
@@ -361,26 +380,21 @@ POST /items/:itemId/receipt
         │                    returns: { url: string }
         ▼
 4. ExtractionService         sends base64-encoded file to Claude vision API
-        │                    prompt requests JSON: { merchantName, amount,
-        │                    currency, transactionDate }
+        │                    prompt requests JSON with value + confidence per field
         │                    wraps in try/catch — returns null fields on failure
         ▼
-5. ItemsService.update()     sets item.receiptUrl = url
-        │                    sets item.aiExtracted = extracted fields
-        │                    does NOT auto-save extracted values to top-level fields
+5. ItemsService.attachReceipt()  sets item.receiptUrl = url
+        │                        sets item.aiExtracted = { field: { value, confidence } }
+        │                        does NOT auto-save extracted values to top-level fields
         ▼
 6. HTTP 200 response         returns updated item including aiExtracted
         │
         ▼
 Frontend ReceiptUploader     reads aiExtracted, pre-populates form fields
+                             ExtractionPreview shows confidence badge per field
                              all fields immediately editable
                              user saves explicitly via form submit
 ```
-
-If the Anthropic API call fails, the error is logged server-side, `aiExtracted`
-is stored as `null`, and the response still returns 200 with the receipt URL.
-The upload is not rolled back. The frontend shows empty pre-fill and a dismissible
-extraction error notice.
 
 ---
 
@@ -411,18 +425,33 @@ Manages five explicit states as a discriminated union:
 ```typescript
 type ExtractionState =
   | { status: 'idle' }
-  | { status: 'uploading'; progress: number }
-  | { status: 'extracting' }
+  | { status: 'uploading' }
+  | { status: 'extracting' }                        // awaiting synchronous API response
   | { status: 'complete'; extracted: ExtractedFields }
   | { status: 'error'; message: string }
 ```
 
-State transitions are explicit (`setState({ status: 'extracting' })`) — never
-inferred from loading flags or undefined checks. This prevents the UI from
-showing stale data or entering an ambiguous state.
+State transitions are always explicit — never inferred from loading flags or
+undefined checks. This prevents the UI from entering an ambiguous state.
 
 On `complete`, the parent `ItemForm` receives extracted fields via callback and
 pre-populates the controlled form inputs. All fields remain editable immediately.
+
+### ExtractionPreview component (Phase 13 — confidence badges)
+
+Each pre-filled field renders a confidence badge alongside the value:
+- `confidence >= 0.85` → green "High" chip
+- `confidence 0.60–0.84` → amber "Review" chip with tooltip "AI is uncertain — please verify"
+- `confidence < 0.60` → red "Low" chip — field highlighted for manual check
+- `confidence === null` → no badge (extraction pre-dates confidence scoring)
+
+### AuditTimeline component (Phase 14)
+
+Renders `statusHistory` entries as a vertical timeline, newest-first. Each entry
+shows the actor role chip (`User` / `Admin`), a status transition arrow
+(`DRAFT → SUBMITTED`), an optional rejection note, and a formatted timestamp.
+Used on the admin detail page and (read-only rejection note only) on the user
+detail page.
 
 ### StatusBadge component
 
@@ -523,6 +552,7 @@ Special-purpose POST endpoints override via `@ResponseMeta`:
 | POST /reports/:id/submit | Submit successfully | `005` |
 | POST /admin/reports/:id/approve | Approve successfully | `006` |
 | POST /admin/reports/:id/reject | Reject successfully | `007` |
+| POST /reports/:id/reopen | Reopened successfully | `008` |
 
 `data` is `null` for DELETE responses (service returns `void`).
 
@@ -607,34 +637,45 @@ Uses `Supertest` + `mongodb-memory-server`. No docker required for CI.
 
 ---
 
-## 12. What Would Come Next
+## 12. Optional Enhancements — Implementation Guide
 
-### Priority 1 — Async extraction pipeline
+These three features correspond to Phases 12–14 in `docs/plan.md`.
+See that file for full task breakdowns.
 
-Replace the synchronous Anthropic API call with a BullMQ job queue backed by
-Redis. The upload endpoint returns immediately with a `jobId`. The frontend polls
-`GET /items/:itemId/extraction-status` until complete. This removes the ~3–5
-second blocking wait, enables automatic retries on API failure, and opens the
-door to confidence score display — the job result payload can include per-field
-confidence percentages (0–1) that the UI surfaces alongside pre-filled values,
-letting users know which fields the model is uncertain about.
+### Phase 12 — Async Extraction Queue (BullMQ + Redis)
 
-### Priority 2 — Per-report audit trail
+**New module:** `src/extraction-queue/` — `ExtractionQueueModule` + `ExtractionProcessor`.
 
-A `statusHistory` array on each `ExpenseReport` document, appended on every
-state transition:
+**Changed:** `UploadsController` no longer awaits `ExtractionService`; enqueues a
+job and returns `{ receiptUrl, jobId }` immediately. New endpoint
+`GET /items/:itemId/extraction-status` proxies job status from BullMQ.
 
-```typescript
-statusHistory: [{
-  from:      ReportStatus
-  to:        ReportStatus
-  actorId:   ObjectId
-  actorRole: 'user' | 'admin'
-  note:      string | null
-  timestamp: Date
-}]
-```
+**Frontend change:** `ReceiptUploader` gains a `'pending'` state; polls status
+endpoint every 2 s until `'complete'` or `'failed'`.
 
-Admins see this history inline on the report detail view. Immediately useful for
-dispute resolution and compliance — auditors can see exactly who approved what
-and when, and whether a report was ever rejected and resubmitted.
+**Infrastructure:** Redis at port 6379 added to `docker-compose.yml` and
+`apps/backend/.env`.
+
+### Phase 13 — Confidence Scores
+
+**Changed:** `ExtractionService` prompt and return type. Each field becomes
+`{ value: T|null, confidence: number }` instead of `T|null`.
+
+**Changed:** `aiExtracted` sub-document schema on `ExpenseItem` updated to the
+new shape. Pre-existing items have `confidence: null` (backwards compatible).
+
+**Frontend change:** `ExtractionPreview` renders a colour-coded confidence badge
+(green / amber / red) alongside each pre-filled value.
+
+### Phase 14 — Per-report Audit Trail
+
+**Changed:** `ExpenseReport` schema gains a `statusHistory` array. Every service
+method that changes status appends an entry (actor, transition, note, timestamp).
+
+**Changed:** `AdminService.reject()` accepts an optional `note: string` parameter.
+The reject DTO and endpoint body are updated accordingly.
+
+**Frontend changes:**
+- `AuditTimeline` component renders history entries on the admin detail page.
+- Reject `ConfirmDialog` gains an optional textarea for the rejection reason.
+- User detail page shows a rejection note banner when status is `REJECTED`.
