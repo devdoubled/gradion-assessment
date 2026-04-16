@@ -8,7 +8,8 @@
     "dev": "concurrently \"pnpm dev:backend\" \"pnpm dev:frontend\"",
     "test": "pnpm --filter backend test",
     "test:e2e": "pnpm --filter backend test:e2e",
-    "build": "pnpm --filter backend build && pnpm --filter frontend build"
+    "build": "pnpm --filter backend build && pnpm --filter frontend build",
+    "seed:admin": "pnpm --filter backend seed:admin"
   },
   "devDependencies": {
     "concurrently": "^8.0.0"
