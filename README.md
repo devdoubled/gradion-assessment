@@ -63,6 +63,12 @@ pnpm seed:admin
 
 **User:** Register at http://localhost:3000/signup — the signup page creates user-role accounts only.
 
+**MinIO Console** (http://localhost:9001):
+
+| Username | Password |
+|---|---|
+| `minioadmin` | `minioadmin` |
+
 > Admin account creation is intentionally not exposed in the UI. In a real system,
 > privileged roles are provisioned through backend tooling or internal processes —
 > not self-served through a public registration form. `pnpm seed:admin` simulates
