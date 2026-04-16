@@ -28,7 +28,9 @@ describe('App (e2e)', () => {
       .useValue({
         onModuleInit: jest.fn(),
         upload: jest.fn().mockResolvedValue('receipts/test.jpg'),
-        getUrl: jest.fn().mockReturnValue('http://localhost:9000/receipts/test.jpg'),
+        getUrl: jest
+          .fn()
+          .mockReturnValue('http://localhost:9000/receipts/test.jpg'),
       })
       .compile();
 

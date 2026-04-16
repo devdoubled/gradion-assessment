@@ -7,7 +7,9 @@ import { isAuthenticated, getRole, getUserEmail, clearToken } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
-import { ClipboardList, LogOut, LayoutDashboard } from 'lucide-react';
+import { ExpenseLogo } from '@/components/expense-logo';
+import { ThemeToggle } from '@/components/theme-toggle';
+import { ClipboardList, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const NAV = [
@@ -31,15 +33,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const email = getUserEmail() ?? '';
 
   return (
-    <div className="flex h-screen bg-zinc-50">
+    <div className="flex h-screen bg-zinc-50 dark:bg-background">
       {/* Sidebar */}
-      <aside className="flex flex-col w-64 border-r border-border bg-white shrink-0">
+      <aside className="flex flex-col w-64 border-r border-border bg-white dark:bg-card shrink-0">
         {/* Logo */}
-        <div className="flex items-center gap-2 px-6 py-5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <LayoutDashboard className="h-4 w-4" />
-          </div>
-          <span className="font-semibold tracking-tight">ExpenseFlow</span>
+        <div className="flex items-center gap-2.5 px-5 py-4">
+          <ExpenseLogo className="h-8 w-8 shrink-0" />
+          <span className="font-semibold tracking-tight text-sm leading-tight">
+            Expense Report
+          </span>
         </div>
         <Separator />
         {/* Nav */}
@@ -61,25 +63,23 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           ))}
         </nav>
         <Separator />
-        {/* User */}
-        <div className="flex items-center gap-3 px-4 py-4">
-          <Avatar className="h-8 w-8">
+        {/* User + theme toggle */}
+        <div className="flex items-center gap-2 px-4 py-3">
+          <Avatar className="h-7 w-7 shrink-0">
             <AvatarFallback className="text-xs bg-primary/10 text-primary">
               {email.charAt(0).toUpperCase()}
             </AvatarFallback>
           </Avatar>
-          <div className="flex flex-col min-w-0">
+          <div className="flex flex-col min-w-0 flex-1">
             <span className="text-xs font-medium truncate">{email}</span>
             <span className="text-xs text-muted-foreground">Admin</span>
           </div>
+          <ThemeToggle />
           <Button
             variant="ghost"
             size="icon"
-            className="ml-auto h-7 w-7 text-muted-foreground hover:text-destructive"
-            onClick={() => {
-              clearToken();
-              router.replace('/login');
-            }}
+            className="h-7 w-7 text-muted-foreground hover:text-destructive"
+            onClick={() => { clearToken(); router.replace('/login'); }}
           >
             <LogOut className="h-4 w-4" />
           </Button>

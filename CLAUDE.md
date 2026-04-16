@@ -314,10 +314,11 @@ NEXT_PUBLIC_API_URL=http://localhost:3001
 apps/frontend/
 ├── app/
 │   ├── (auth)/
+│   │   ├── layout.tsx              ← guest guard: redirects authenticated users to their dashboard
 │   │   ├── login/page.tsx
 │   │   └── signup/page.tsx
 │   ├── (user)/
-│   │   ├── layout.tsx              ← redirects to /login if no JWT
+│   │   ├── layout.tsx              ← auth guard: redirects to /login if no JWT
 │   │   └── reports/
 │   │       ├── page.tsx            ← report list + StatusBadge
 │   │       ├── new/page.tsx
@@ -327,7 +328,7 @@ apps/frontend/
 │   │               ├── new/page.tsx
 │   │               └── [itemId]/edit/page.tsx
 │   └── (admin)/
-│       ├── layout.tsx              ← redirects non-admins
+│       ├── layout.tsx              ← auth guard: redirects non-admins
 │       └── admin/reports/page.tsx  ← all reports, approve/reject
 ├── components/
 │   ├── StatusBadge.tsx
@@ -339,6 +340,18 @@ apps/frontend/
     ├── api.ts                      ← axios instance, JWT interceptor
     └── auth.ts                     ← token helpers, role decode
 ```
+
+**Route guard rules (enforced via layout.tsx in each route group):**
+```
+(auth)/layout.tsx   — guest guard: if isAuthenticated(), redirect to /admin/reports or /reports
+(user)/layout.tsx   — auth guard: if !isAuthenticated(), redirect to /login
+                      if role === 'admin', redirect to /admin/reports
+(admin)/layout.tsx  — auth guard: if !isAuthenticated(), redirect to /login
+                      if role !== 'admin', redirect to /reports
+```
+Rule: authenticated users can never access /login or /signup (browser back included).
+Rule: unauthenticated users can never access protected routes.
+Rule: users and admins are always redirected to their own dashboard.
 
 **AI extraction UI states (explicit, never inferred):**
 ```
