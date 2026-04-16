@@ -6,6 +6,7 @@ import {
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { ExpenseReport, ExpenseReportDocument } from './schemas/report.schema';
+import { ExpenseItem, ExpenseItemDocument } from '../items/schemas/item.schema';
 import { CreateReportDto } from './dto/create-report.dto';
 import { UpdateReportDto } from './dto/update-report.dto';
 import { assertTransition } from './report-state-machine';
@@ -15,6 +16,8 @@ export class ReportsService {
   constructor(
     @InjectModel(ExpenseReport.name)
     private readonly reportModel: Model<ExpenseReportDocument>,
+    @InjectModel(ExpenseItem.name)
+    private readonly itemModel: Model<ExpenseItemDocument>,
   ) {}
 
   async create(
@@ -70,12 +73,46 @@ export class ReportsService {
     if (report.status !== 'DRAFT') {
       throw new BadRequestException('Only DRAFT reports can be deleted');
     }
+    await this.itemModel.deleteMany({ reportId: report._id });
     await report.deleteOne();
+  }
+
+  async reopen(id: string, userId: string): Promise<ExpenseReportDocument> {
+    const report = await this.findOneOwned(id, userId);
+    assertTransition(report.status, 'DRAFT');
+    report.statusHistory.push({
+      from: report.status,
+      to: 'DRAFT',
+      actorId: new Types.ObjectId(userId),
+      actorRole: 'user',
+      note: null,
+      timestamp: new Date(),
+    } as never);
+    report.status = 'DRAFT';
+    return report.save();
   }
 
   async submit(id: string, userId: string): Promise<ExpenseReportDocument> {
     const report = await this.findOneOwned(id, userId);
     assertTransition(report.status, 'SUBMITTED');
+
+    const itemCount = await this.itemModel.countDocuments({
+      reportId: new Types.ObjectId(id),
+    });
+    if (itemCount === 0) {
+      throw new BadRequestException(
+        'Cannot submit a report with no expense items',
+      );
+    }
+
+    report.statusHistory.push({
+      from: report.status,
+      to: 'SUBMITTED',
+      actorId: new Types.ObjectId(userId),
+      actorRole: 'user',
+      note: null,
+      timestamp: new Date(),
+    } as never);
     report.status = 'SUBMITTED';
     return report.save();
   }

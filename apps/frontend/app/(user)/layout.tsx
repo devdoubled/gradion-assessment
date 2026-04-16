@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { isAuthenticated, getRole, getUserEmail, clearToken } from '@/lib/auth';
@@ -9,27 +9,32 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { ExpenseLogo } from '@/components/expense-logo';
 import { ThemeToggle } from '@/components/theme-toggle';
-import { FileText, Plus, LogOut } from 'lucide-react';
+import { FileText, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const NAV = [
   { href: '/reports', label: 'My Reports', icon: FileText },
-  { href: '/reports/new', label: 'New Report', icon: Plus },
 ];
 
 export default function UserLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
+  const [checked, setChecked] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated()) {
       router.replace('/login');
       return;
     }
-    if (getRole() === 'admin') router.replace('/admin/reports');
-  }, [router]);
+    if (getRole() === 'admin') {
+      router.replace('/admin/reports');
+      return;
+    }
+    setChecked(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  if (!isAuthenticated()) return null;
+  if (!checked) return null;
 
   const email = getUserEmail() ?? '';
 
@@ -53,8 +58,7 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
               href={href}
               className={cn(
                 'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
-                pathname === href ||
-                  (href !== '/reports/new' && pathname.startsWith(href))
+                pathname === href || pathname.startsWith(href)
                   ? 'bg-primary/10 text-primary'
                   : 'text-muted-foreground hover:bg-muted hover:text-foreground',
               )}

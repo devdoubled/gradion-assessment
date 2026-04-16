@@ -25,6 +25,20 @@ export class UploadsService implements OnModuleInit {
     if (!exists) {
       await this.client.makeBucket(this.bucket);
     }
+
+    // Set public read policy so receipt URLs are directly accessible
+    const policy = JSON.stringify({
+      Version: '2012-10-17',
+      Statement: [
+        {
+          Effect: 'Allow',
+          Principal: { AWS: ['*'] },
+          Action: ['s3:GetObject'],
+          Resource: [`arn:aws:s3:::${this.bucket}/*`],
+        },
+      ],
+    });
+    await this.client.setBucketPolicy(this.bucket, policy);
   }
 
   async upload(
@@ -33,7 +47,7 @@ export class UploadsService implements OnModuleInit {
     originalname: string,
   ): Promise<string> {
     const ext = path.extname(originalname);
-    const key = `receipts/${randomUUID()}${ext}`;
+    const key = `${randomUUID()}${ext}`;
     await this.client.putObject(this.bucket, key, buffer, buffer.length, {
       'Content-Type': mimetype,
     });

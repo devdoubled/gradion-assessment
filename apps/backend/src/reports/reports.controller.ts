@@ -69,6 +69,16 @@ export class ReportsController {
     return this.reportsService.remove(id, req.user!['id']);
   }
 
+  @Post(':id/reopen')
+  @HttpCode(HttpStatus.OK)
+  @ResponseMeta('Reopened successfully', '008')
+  @ApiOperation({
+    summary: 'Re-open a REJECTED report for editing (REJECTED → DRAFT)',
+  })
+  reopen(@Param('id') id: string, @Req() req: Request) {
+    return this.reportsService.reopen(id, req.user!['id']);
+  }
+
   @Post(':id/submit')
   @HttpCode(HttpStatus.OK)
   @ResponseMeta('Submit successfully', '005')
