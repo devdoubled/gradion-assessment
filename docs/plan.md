@@ -485,6 +485,36 @@ Commit: `feat(audit): per-report status history with rejection notes`
 
 ---
 
+## Phase 15 — Optional: Inline Receipt Viewer
+
+Goal: Admin and user can view uploaded receipt images/PDFs directly in a dialog
+without leaving the report detail page.
+
+```
+[x] Create components/ReceiptViewerDialog.tsx
+      → Dialog (shadcn) controlled by open/onOpenChange
+      → Detects file type from URL extension (.pdf → iframe, otherwise → <img>)
+      → Header: file type icon, merchant name title, "Open in tab" + "Download" buttons
+      → Body: full-width image (max-h-[70vh] object-contain) or iframe for PDFs
+      → Image fallback: shows "Unable to load image" + direct link if src errors
+      → Footer: Close button via DialogFooter showCloseButton
+[x] Update app/(admin)/admin/reports/[id]/page.tsx
+      → Receipt column: replace static icon with clickable "View" button (emerald)
+      → Clicking sets viewReceipt state { url, merchantName }
+      → ReceiptViewerDialog rendered at bottom of component
+[x] Update app/(user)/reports/[id]/page.tsx
+      → Same pattern as admin detail page
+      → Users can view their own uploaded receipts inline
+```
+
+No backend changes required — receiptUrl is already stored as a full public MinIO
+URL (`http://localhost:9000/receipts/{key}`). Bucket has public read policy set
+on startup, so images load directly in the browser.
+
+Commit: `feat(frontend): add inline receipt viewer dialog for image and PDF receipts`
+
+---
+
 ## Definition of Done
 
 The submission is ready when ALL of the following are true:

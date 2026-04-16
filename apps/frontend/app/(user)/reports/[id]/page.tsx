@@ -21,6 +21,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { ReceiptViewerDialog } from '@/components/ReceiptViewerDialog';
 import { StatusHistoryEntry } from '@/lib/types';
 import {
   ArrowLeft,
@@ -53,6 +54,7 @@ export default function ReportDetailPage({ params }: PageProps) {
   const [error, setError] = useState<string | null>(null);
   const [deleteReportOpen, setDeleteReportOpen] = useState(false);
   const [deleteItemId, setDeleteItemId] = useState<string | null>(null);
+  const [viewReceipt, setViewReceipt] = useState<{ url: string; merchantName: string } | null>(null);
 
   async function loadData() {
     try {
@@ -394,9 +396,21 @@ export default function ReportDetailPage({ params }: PageProps) {
                       </TableCell>
                       <TableCell>
                         {item.receiptUrl ? (
-                          <Receipt className="h-4 w-4 text-emerald-600" />
+                          <button
+                            onClick={() =>
+                              setViewReceipt({
+                                url: item.receiptUrl!,
+                                merchantName: item.merchantName,
+                              })
+                            }
+                            className="flex items-center gap-1.5 text-xs font-medium text-emerald-700 hover:text-emerald-900 hover:underline cursor-pointer transition-colors"
+                            title="View receipt"
+                          >
+                            <Receipt className="h-3.5 w-3.5 shrink-0" />
+                            View
+                          </button>
                         ) : (
-                          <Receipt className="h-4 w-4 text-muted-foreground/25" />
+                          <span className="text-xs text-muted-foreground/40">—</span>
                         )}
                       </TableCell>
                       {isDraft && (
@@ -458,6 +472,16 @@ export default function ReportDetailPage({ params }: PageProps) {
         destructive
         onConfirm={confirmDeleteItem}
       />
+
+      {/* Receipt viewer */}
+      {viewReceipt && (
+        <ReceiptViewerDialog
+          open={!!viewReceipt}
+          onOpenChange={(open) => { if (!open) setViewReceipt(null); }}
+          receiptUrl={viewReceipt.url}
+          merchantName={viewReceipt.merchantName}
+        />
+      )}
     </>
   );
 }

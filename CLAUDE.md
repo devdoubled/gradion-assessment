@@ -357,7 +357,8 @@ apps/frontend/
 │   ├── ReceiptUploader.tsx         ← manages extraction states (idle/uploading/extracting/complete/error)
 │   ├── ExtractionPreview.tsx       ← pre-filled fields + confidence badges (Phase 13)
 │   ├── ConfirmDialog.tsx           ← reusable confirm/destructive alert dialog
-│   └── AuditTimeline.tsx           ← Phase 14: renders statusHistory entries
+│   ├── AuditTimeline.tsx           ← Phase 14: renders statusHistory entries
+│   └── ReceiptViewerDialog.tsx     ← Phase 15: inline Dialog to view receipt image/PDF
 └── lib/
     ├── api.ts                      ← axios instance, JWT interceptor
     ├── auth.ts                     ← token helpers, role decode
@@ -459,4 +460,5 @@ Track status here. Update as modules are completed.
 [ ] Phase 12 — Optional: async extraction queue (BullMQ + Redis)
 [x] Phase 13 — Optional: confidence scores in extraction UI
 [x] Phase 14 — Optional: per-report audit trail with rejection notes
+[x] Phase 15 — Optional: inline receipt viewer (image + PDF) for admin and user detail pages
 ```

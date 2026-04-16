@@ -153,7 +153,8 @@ gradion-assessment/
 │       │   ├── ReceiptUploader.tsx
 │       │   ├── ExtractionPreview.tsx  (Phase 13: adds confidence badges)
 │       │   ├── ConfirmDialog.tsx
-│       │   └── AuditTimeline.tsx      (Phase 14: status history timeline)
+│       │   ├── AuditTimeline.tsx      (Phase 14: status history timeline)
+│       │   └── ReceiptViewerDialog.tsx (Phase 15: inline image/PDF viewer)
 │       ├── lib/
 │       │   ├── api.ts
 │       │   ├── auth.ts
@@ -679,3 +680,25 @@ The reject DTO and endpoint body are updated accordingly.
 - `AuditTimeline` component renders history entries on the admin detail page.
 - Reject `ConfirmDialog` gains an optional textarea for the rejection reason.
 - User detail page shows a rejection note banner when status is `REJECTED`.
+
+---
+
+### Phase 15 — Inline Receipt Viewer
+
+**No backend changes.** `receiptUrl` is already stored as a full public MinIO URL
+(`http://localhost:9000/receipts/{key}`). The bucket policy set on startup grants
+public read, so browsers can load receipts directly.
+
+**New component:** `ReceiptViewerDialog.tsx`
+- Controlled dialog (`open` / `onOpenChange`).
+- Detects PDF vs image by checking the URL extension.
+- Images render via `<img>` with `object-contain` inside the dialog body.
+- PDFs render via `<iframe>` at full dialog height.
+- Header contains a merchant name title, "Open in tab" anchor, and "Download" anchor.
+- Image load failure is handled client-side: the `<img>` hides itself and a fallback
+  message with a direct link is shown.
+
+**Changed:** Admin detail page (`/admin/reports/[id]`) and user detail page
+(`/reports/[id]`) — the static receipt icon in the items table is replaced with a
+clickable "View" button. Clicking opens `ReceiptViewerDialog` with the item's
+`receiptUrl` and `merchantName`.
