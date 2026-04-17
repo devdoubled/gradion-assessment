@@ -14,9 +14,13 @@ import * as mongoose from 'mongoose';
 import * as bcrypt from 'bcrypt';
 
 // ── Config ────────────────────────────────────────────────────────────────────
+// Add as many admin accounts as needed. The script is idempotent —
+// existing emails are skipped, new ones are created.
 
-const ADMIN_EMAIL = 'admin@gradion.dev';
-const ADMIN_PASSWORD = 'Admin@1234';
+const ADMINS: { email: string; password: string }[] = [
+  { email: 'admin@gradion.dev', password: 'Admin@1234' },
+  // { email: 'another@gradion.dev', password: 'Another@5678' },
+];
 
 // ── Load .env manually (no dotenv dep required) ───────────────────────────────
 
@@ -70,24 +74,24 @@ async function main(): Promise<void> {
 
   const User = mongoose.model('User', UserSchema);
 
-  const existing = await User.findOne({ email: ADMIN_EMAIL }).exec();
-  if (existing) {
-    console.log(`\n✓ Admin account already exists — nothing to do.`);
-    console.log(`  Email:    ${ADMIN_EMAIL}`);
-    console.log(`  Password: (unchanged)\n`);
-    await mongoose.disconnect();
-    return;
+  for (const admin of ADMINS) {
+    const existing = await User.findOne({ email: admin.email }).exec();
+    if (existing) {
+      console.log(`  ↷ ${admin.email} — already exists, skipped.`);
+      continue;
+    }
+
+    const passwordHash = await bcrypt.hash(admin.password, 10);
+    await User.create({ email: admin.email, passwordHash, role: 'admin' });
+
+    console.log(`  ✓ ${admin.email} — created.`);
+    console.log('    ┌─────────────────────────────────┐');
+    console.log(`    │  Email:    ${admin.email.padEnd(23)}│`);
+    console.log(`    │  Password: ${admin.password.padEnd(23)}│`);
+    console.log('    └─────────────────────────────────┘');
   }
 
-  const passwordHash = await bcrypt.hash(ADMIN_PASSWORD, 10);
-  await User.create({ email: ADMIN_EMAIL, passwordHash, role: 'admin' });
-
-  console.log('\n✓ Admin account created successfully.\n');
-  console.log('  ┌─────────────────────────────────┐');
-  console.log(`  │  Email:    ${ADMIN_EMAIL.padEnd(23)}│`);
-  console.log(`  │  Password: ${ADMIN_PASSWORD.padEnd(23)}│`);
-  console.log('  └─────────────────────────────────┘\n');
-  console.log('  Log in at http://localhost:3000/login\n');
+  console.log('\n  Log in at http://localhost:3000/login\n');
 
   await mongoose.disconnect();
 }

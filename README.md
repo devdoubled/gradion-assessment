@@ -76,8 +76,9 @@ pnpm seed:admin
 > Admin account creation is intentionally not exposed in the UI. In a real system,
 > privileged roles are provisioned through backend tooling or internal processes —
 > not self-served through a public registration form. `pnpm seed:admin` simulates
-> that boundary. The script is idempotent: re-running it skips creation if the
-> account already exists.
+> that boundary. To provision additional admin accounts, add entries to the `ADMINS`
+> array in `apps/backend/src/scripts/seed-admin.ts` and re-run the script.
+> It is idempotent — existing emails are skipped, new ones are created.
 
 ---
 

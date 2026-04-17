@@ -2,17 +2,20 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { MongoMemoryServer } from 'mongodb-memory-server';
-import { getConnectionToken } from '@nestjs/mongoose';
-import { Connection } from 'mongoose';
+import { getConnectionToken, getModelToken } from '@nestjs/mongoose';
+import { Connection, Model } from 'mongoose';
+import * as bcrypt from 'bcrypt';
 import { AppModule } from '../src/app.module';
 import { HttpExceptionFilter } from '../src/common/filters/http-exception.filter';
 import { globalValidationPipe } from '../src/common/pipes/validation.pipe';
 import { UploadsService } from '../src/uploads/uploads.service';
+import { User } from '../src/auth/schemas/user.schema';
 
 describe('App (e2e)', () => {
   let app: INestApplication;
   let mongod: MongoMemoryServer;
   let mongoConnection: Connection;
+  let userModel: Model<User>;
 
   beforeAll(async () => {
     mongod = await MongoMemoryServer.create();
@@ -40,6 +43,7 @@ describe('App (e2e)', () => {
     await app.init();
 
     mongoConnection = moduleFixture.get<Connection>(getConnectionToken());
+    userModel = moduleFixture.get<Model<User>>(getModelToken(User.name));
   });
 
   afterAll(async () => {
@@ -124,11 +128,12 @@ describe('App (e2e)', () => {
       .send({ amount: 100 })
       .expect(400);
 
-    // 8. signup admin
-    await request(app.getHttpServer())
-      .post('/auth/signup')
-      .send({ email: 'admin@test.com', password: 'password123', role: 'admin' })
-      .expect(201);
+    // 8. seed admin directly — role is never accepted from the public signup endpoint
+    await userModel.create({
+      email: 'admin@test.com',
+      passwordHash: await bcrypt.hash('password123', 10),
+      role: 'admin',
+    });
 
     // 9. login admin → admin JWT
     const adminLoginRes = await request(app.getHttpServer())

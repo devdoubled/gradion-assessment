@@ -146,7 +146,15 @@ wins on the read path.
 
 ---
 
-## 5. Ownership Checks in Service Queries, Not Guards
+## 5. Role Assignment Is Backend-Only — Not Accepted from Signup Request
+
+**Decision:** `POST /auth/signup` always creates a `user`-role account. The `role` field is not present in `SignupDto` and is hardcoded to `'user'` in `AuthService.signup()`.
+
+**Rationale:** Accepting role as a client-supplied field would allow any unauthenticated caller to self-promote to admin by posting `{ role: 'admin' }` to the signup endpoint. Admin accounts are provisioned exclusively through backend tooling (`pnpm seed:admin`), which mirrors how privileged roles are managed in production systems — not self-served through a public API. Multiple admins can be seeded by adding entries to the `ADMINS` array in `apps/backend/src/scripts/seed-admin.ts`; the script is idempotent — existing emails are skipped. The e2e test seeds the admin fixture directly via the Mongoose model for the same reason.
+
+---
+
+## 6. Ownership Checks in Service Queries, Not Guards
 
 **Decision:** Resource ownership is enforced by filtering `{ _id: reportId, userId: req.user.id }` in the service query, not by a separate guard.
 
@@ -159,7 +167,7 @@ because it is the only layer with access to the query scope.
 
 ---
 
-## 6. API Response Envelope
+## 7. API Response Envelope
 
 **Decision:** Every response uses a consistent `{ status, message, messageCode, data }`
 envelope. HTTP method infers default message and code; individual handlers override
@@ -171,7 +179,7 @@ conditional shape checking. Error responses use the same envelope shape with
 
 ---
 
-## 7. What Was Built Beyond the Core
+## 8. What Was Built Beyond the Core
 
 Two optional enhancements were implemented on top of the core assessment requirements.
 
@@ -211,7 +219,7 @@ arrows, quoted rejection notes, and formatted timestamps.
 
 ---
 
-## 8. If You Had One More Day — What Would You Build Next and Why?
+## 9. If You Had One More Day — What Would You Build Next and Why?
 
 **I would ship the async extraction queue.** Here is the reasoning.
 
