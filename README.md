@@ -4,6 +4,10 @@ A full-stack Expense Report Management System built as a take-home assessment fo
 Users create and submit expense reports with AI-powered receipt extraction.
 Admins review, approve, or reject submitted reports with a full audit trail.
 
+Stack: Next.js · NestJS · MongoDB · MinIO · Claude Vision API
+
+**[Watch the demo video →](https://drive.google.com/drive/folders/11BiE17NYLTHqXpr3vYtUuBpImimYKY-1?usp=sharing)**
+
 ---
 
 ## Prerequisites
@@ -87,7 +91,7 @@ pnpm test
 pnpm test:e2e
 ```
 
-All tests run entirely in-process using `mongodb-memory-server` — no Docker or running services required.
+Unit tests cover service-layer logic (auth, report state transitions, item amount recomputation). The E2E test validates the full user lifecycle end-to-end: signup → create report → add items → submit → admin approve. All tests run entirely in-process using `mongodb-memory-server` — no Docker or running services required.
 
 ---
 
@@ -203,10 +207,22 @@ gradion-assessment/
 
 ---
 
+## Known Limitations / Future Improvements
+
+- **Async extraction** — receipt extraction currently runs synchronously in the upload request. A BullMQ + Redis queue (Phase 12) would decouple the Claude API call, preventing slow responses under load and enabling retries without user impact.
+- **Pagination** — the report and item list endpoints return all records. At scale these need cursor- or offset-based pagination; the API surface already supports `?status=` filtering as a starting point.
+- **File type validation** — receipt uploads accept images and PDFs but rely on MIME type from the client. Server-side magic-byte validation (e.g. via `file-type`) would be more robust.
+- **Admin role provisioning** — admin accounts are seeded via a CLI script. A proper internal tool or IAM-backed provisioning flow would replace this in production.
+- **Test coverage** — integration tests cover the happy path. Rejection/reopen flows, ownership boundary cases, and extraction failure paths warrant their own test cases.
+
+---
+
 ## API Documentation
 
 Swagger UI is available at **http://localhost:3001/api/docs** while the backend is running.
 Click **Authorize** and paste a JWT from `POST /auth/login` to authenticate all requests.
+
+![Swagger UI](docs/swagger-ui.png)
 
 ---
 
